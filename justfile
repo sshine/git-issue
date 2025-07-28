@@ -1,4 +1,6 @@
-# Git Tracker Development Tasks
+# Lists just commands
+list:
+    just --list
 
 # Build the project
 build:
@@ -43,6 +45,22 @@ clean:
 # Run the CLI
 run *args:
     cargo run -- {{args}}
+
+# CLI examples and shortcuts
+cli-help:
+    cargo run -- --help
+
+cli-new TITLE *args:
+    cargo run -- new "{{TITLE}}" {{args}}
+
+cli-list *args:
+    cargo run -- list {{args}}
+
+cli-show ID:
+    cargo run -- show {{ID}}
+
+cli-status ID STATUS:
+    cargo run -- status {{ID}} {{STATUS}}
 
 # Development workflow: format, lint, test with nextest
 dev: fmt lint nextest

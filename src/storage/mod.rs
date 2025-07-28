@@ -7,7 +7,7 @@ pub use issue_store::IssueStore;
 pub use repo::{CommitData, GitRepository, TreeEntry};
 
 #[cfg(test)]
-mod test_helpers {
+pub mod test_helpers {
     use super::repo::GitRepository;
     use crate::common::Identity;
     use std::path::Path;

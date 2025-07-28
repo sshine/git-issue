@@ -47,6 +47,12 @@ pub enum GitError {
     #[error("Reference update failed: {ref_name} - {message}")]
     ReferenceUpdateFailed { ref_name: String, message: String },
 
+    #[error("Reference creation failed: {ref_name} - {message}")]
+    ReferenceCreationFailed { ref_name: String, message: String },
+
+    #[error("Reference read failed: {ref_name} - {message}")]
+    ReferenceReadFailed { ref_name: String, message: String },
+
     #[error("Failed to create object: {object_type} - {message}")]
     ObjectCreationFailed {
         object_type: String,
