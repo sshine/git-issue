@@ -277,6 +277,9 @@ mod tests {
 
         let original_updated_at = issue.updated_at;
 
+        // Add a small delay to ensure timestamp difference
+        std::thread::sleep(std::time::Duration::from_millis(1));
+
         // Test status change
         issue.change_status(IssueStatus::InProgress);
         assert_eq!(issue.status, IssueStatus::InProgress);

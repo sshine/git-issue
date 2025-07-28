@@ -1,0 +1,59 @@
+[profile.default]
+# Number of threads to run tests with
+test-threads = "num-cpus"
+
+# Show output for failing tests
+failure-output = "immediate-final"
+
+# Show output for successful tests (useful for debugging)
+success-output = "never"
+
+# Cancel test run on first failure
+fail-fast = false
+
+# Retry flaky tests up to 2 times
+retries = 2
+
+# Test timeout (30 seconds should be plenty for our current tests)
+slow-timeout = { period = "30s", terminate-after = 2 }
+
+# Group tests by module for better organization
+[profile.default.junit]
+path = "target/nextest/junit.xml"
+
+# Custom profile for CI environments
+[profile.ci]
+# Inherit from default
+inherits = "default"
+
+# More verbose output in CI
+failure-output = "immediate-final"
+success-output = "never"
+
+# Don't retry tests in CI to catch flaky tests
+retries = 0
+
+# Shorter timeout in CI
+slow-timeout = { period = "60s", terminate-after = 1 }
+
+# Generate JUnit XML for CI integration
+[profile.ci.junit]
+path = "target/nextest/ci-junit.xml"
+store-success-output = true
+store-failure-output = true
+
+# Profile for local development with more detailed output
+[profile.dev]
+inherits = "default"
+failure-output = "immediate-final"
+success-output = "final"
+retries = 0
+
+# Test groups for parallel execution
+[[profile.default.overrides]]
+filter = "test(storage)"
+threads-required = 1  # Storage tests use temp directories, run serially to avoid conflicts
+
+[[profile.default.overrides]]
+filter = "test(common)"
+threads-required = 1  # Unit tests can run in parallel

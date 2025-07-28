@@ -528,6 +528,7 @@ dependencies = [
  "indicatif",
  "serde",
  "serde_json",
+ "tempfile",
  "thiserror",
  "tokio",
 ]

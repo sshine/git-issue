@@ -4,13 +4,25 @@
 build:
     cargo build
 
-# Run tests
+# Run tests with cargo test
 test:
     cargo test
 
 # Run tests with output
 test-verbose:
     cargo test -- --nocapture
+
+# Run tests with nextest (faster, better output)
+nextest:
+    cargo nextest run
+
+# Run tests with nextest in development mode (more verbose)
+nextest-dev:
+    cargo nextest run --profile dev
+
+# Run tests with nextest in CI mode
+nextest-ci:
+    cargo nextest run --profile ci
 
 # Check code without building
 check:
@@ -32,8 +44,11 @@ clean:
 run *args:
     cargo run -- {{args}}
 
-# Development workflow: format, lint, test
-dev: fmt lint test
+# Development workflow: format, lint, test with nextest
+dev: fmt lint nextest
+
+# Development workflow with regular cargo test
+dev-cargo: fmt lint test
 
 # Install development dependencies
 deps:
