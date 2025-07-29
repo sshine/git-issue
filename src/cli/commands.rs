@@ -97,13 +97,13 @@ pub fn run_command(cli: Cli) -> Result<()> {
 }
 
 fn handle_new(repo_path: std::path::PathBuf, args: NewArgs) -> Result<()> {
-    handle_new_with_env(repo_path, args, &SystemEnvProvider)
+    handle_new_with_env(repo_path, args, SystemEnvProvider)
 }
 
 fn handle_new_with_env(
     repo_path: std::path::PathBuf,
     args: NewArgs,
-    env_provider: &dyn EnvProvider,
+    env_provider: impl EnvProvider,
 ) -> Result<()> {
     let mut store = IssueStore::open(&repo_path).or_else(|_| IssueStore::init(&repo_path))?;
 
@@ -206,7 +206,7 @@ fn handle_show(repo_path: std::path::PathBuf, args: ShowArgs) -> Result<()> {
 
 fn handle_status(repo_path: std::path::PathBuf, args: StatusArgs) -> Result<()> {
     let mut store = IssueStore::open(&repo_path)?;
-    let author = get_author_identity(args.author_name, args.author_email, &SystemEnvProvider)?;
+    let author = get_author_identity(args.author_name, args.author_email, SystemEnvProvider)?;
     let new_status = parse_status(&args.status)?;
 
     store.update_issue_status(args.id, new_status, author)?;
@@ -218,7 +218,7 @@ fn handle_status(repo_path: std::path::PathBuf, args: StatusArgs) -> Result<()> 
 fn get_author_identity(
     name: Option<String>,
     email: Option<String>,
-    env_provider: &dyn EnvProvider,
+    env_provider: impl EnvProvider,
 ) -> Result<Identity> {
     let name = name.unwrap_or_else(|| {
         env_provider
@@ -342,7 +342,7 @@ mod tests {
             author_email: None,
         };
 
-        let result = handle_new_with_env(repo_path.clone(), args, &mock_env);
+        let result = handle_new_with_env(repo_path.clone(), args, mock_env);
         assert!(
             result.is_ok(),
             "New command should succeed with default author"
@@ -436,7 +436,7 @@ mod tests {
         let identity = get_author_identity(
             Some("Test Name".to_string()),
             Some("test@email.com".to_string()),
-            &mock_env,
+            mock_env,
         )
         .unwrap();
 
@@ -448,7 +448,7 @@ mod tests {
     fn test_get_author_identity_from_env() {
         let mock_env = MockEnvProvider::with_git_author("Git User", "git@example.com");
 
-        let identity = get_author_identity(None, None, &mock_env).unwrap();
+        let identity = get_author_identity(None, None, mock_env).unwrap();
 
         assert_eq!(identity.name, "Git User");
         assert_eq!(identity.email, "git@example.com");
@@ -460,7 +460,7 @@ mod tests {
         let mut mock_env = MockEnvProvider::new();
         mock_env.set_var("USER", "system_user");
 
-        let identity = get_author_identity(None, None, &mock_env).unwrap();
+        let identity = get_author_identity(None, None, mock_env).unwrap();
 
         // Should fall back to USER env var
         assert_eq!(identity.name, "system_user");
@@ -472,7 +472,7 @@ mod tests {
         // Create completely empty mock environment
         let mock_env = MockEnvProvider::new();
 
-        let identity = get_author_identity(None, None, &mock_env).unwrap();
+        let identity = get_author_identity(None, None, mock_env).unwrap();
 
         // Should fall back to "Unknown"
         assert_eq!(identity.name, "Unknown");
