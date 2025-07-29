@@ -2,8 +2,8 @@
 name = "git-issue"
 version = "0.1.0"
 edition = "2024"
-authors = ["Git Issue Contributors"]
-description = "An offline-first issue tracker with git backend"
+authors = ["Simon Shine <simon@simonshine.dk>"]
+description = "An in-repo, git-powered, offline-first issue tracker"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
