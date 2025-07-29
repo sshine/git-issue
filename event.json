@@ -1,1 +1,1 @@
-{"Created":{"title":"list sub-command should not show done issues unless --all is specified","description":"","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:26:11.811883Z"}}
+{"StatusChanged":{"from":"Todo","to":"Done","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:32:11.079732Z"}}
