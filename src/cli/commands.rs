@@ -25,7 +25,7 @@ pub struct Cli {
 #[derive(Subcommand)]
 pub enum Commands {
     /// Create a new issue
-    New(NewArgs),
+    Create(CreateArgs),
     /// List issues
     List(ListArgs),
     /// Show issue details
@@ -35,7 +35,7 @@ pub enum Commands {
 }
 
 #[derive(Args)]
-pub struct NewArgs {
+pub struct CreateArgs {
     /// Issue title
     pub title: String,
 
@@ -94,20 +94,20 @@ pub fn run_command(cli: Cli) -> Result<()> {
     let repo_path = cli.repo.unwrap_or_else(|| std::env::current_dir().unwrap());
 
     match cli.command {
-        Commands::New(args) => handle_new(repo_path, args),
+        Commands::Create(args) => handle_create(repo_path, args),
         Commands::List(args) => handle_list(repo_path, args),
         Commands::Show(args) => handle_show(repo_path, args),
         Commands::Status(args) => handle_status(repo_path, args),
     }
 }
 
-fn handle_new(repo_path: std::path::PathBuf, args: NewArgs) -> Result<()> {
-    handle_new_with_env(repo_path, args, SystemEnvProvider)
+fn handle_create(repo_path: std::path::PathBuf, args: CreateArgs) -> Result<()> {
+    handle_create_with_env(repo_path, args, SystemEnvProvider)
 }
 
-fn handle_new_with_env(
+fn handle_create_with_env(
     repo_path: std::path::PathBuf,
-    args: NewArgs,
+    args: CreateArgs,
     env_provider: impl EnvProvider,
 ) -> Result<()> {
     let mut store = IssueStore::open(&repo_path).or_else(|_| IssueStore::init(&repo_path))?;
@@ -222,24 +222,24 @@ mod tests {
     }
 
     #[test]
-    fn test_new_command_basic() {
+    fn test_create_command_basic() {
         let (_temp_dir, repo_path) = setup_temp_cli_repo();
         let author = create_test_identity();
 
         // Test creating a new issue with basic arguments
-        let args = NewArgs {
+        let args = CreateArgs {
             title: "Test Issue".to_string(),
             description: Some("This is a test issue".to_string()),
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
         };
 
-        let result = handle_new(repo_path.clone(), args);
-        assert!(result.is_ok(), "New command should succeed");
+        let result = handle_create(repo_path.clone(), args);
+        assert!(result.is_ok(), "Create command should succeed");
 
         // Note: With the current placeholder implementation, we can't verify
         // the issue storage as list_issues() returns empty results due to
-        // placeholder git operations. The test verifies that handle_new
+        // placeholder git operations. The test verifies that handle_create
         // executes without error, which indicates the CLI integration works.
         //
         // In a full implementation, we would verify:
@@ -255,26 +255,26 @@ mod tests {
     }
 
     #[test]
-    fn test_new_command_no_description() {
+    fn test_create_command_no_description() {
         let (_temp_dir, repo_path) = setup_temp_cli_repo();
         let author = create_test_identity();
 
         // Test creating a new issue without description
-        let args = NewArgs {
+        let args = CreateArgs {
             title: "Issue Without Description".to_string(),
             description: None,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
         };
 
-        let result = handle_new(repo_path.clone(), args);
+        let result = handle_create(repo_path.clone(), args);
         assert!(
             result.is_ok(),
-            "New command should succeed without description"
+            "Create command should succeed without description"
         );
 
         // Note: With the current placeholder implementation, we can't verify
-        // the issue storage directly. The test verifies that handle_new
+        // the issue storage directly. The test verifies that handle_create
         // executes without error with no description provided.
         //
         // In a full implementation, we would verify:
@@ -288,28 +288,28 @@ mod tests {
     }
 
     #[test]
-    fn test_new_command_default_author() {
+    fn test_create_command_default_author() {
         let (_temp_dir, repo_path) = setup_temp_cli_repo();
 
         // Create mock environment with Git author variables
         let mock_env = MockEnvProvider::with_git_author("Env User", "env@example.com");
 
         // Test creating a new issue with default author from environment
-        let args = NewArgs {
+        let args = CreateArgs {
             title: "Issue With Default Author".to_string(),
             description: None,
             author_name: None,
             author_email: None,
         };
 
-        let result = handle_new_with_env(repo_path.clone(), args, mock_env);
+        let result = handle_create_with_env(repo_path.clone(), args, mock_env);
         assert!(
             result.is_ok(),
-            "New command should succeed with default author"
+            "Create command should succeed with default author"
         );
 
         // Note: With the current placeholder implementation, we can't verify
-        // the issue storage directly. The test verifies that handle_new_with_env
+        // the issue storage directly. The test verifies that handle_create_with_env
         // executes without error using environment variables for author.
         //
         // In a full implementation, we would verify:
@@ -324,25 +324,25 @@ mod tests {
     }
 
     #[test]
-    fn test_new_command_sequential_issues() {
+    fn test_create_command_sequential_issues() {
         let (_temp_dir, repo_path) = setup_temp_cli_repo();
         let author = create_test_identity();
 
         // Create multiple issues to test ID sequencing
         for i in 1..=3 {
-            let args = NewArgs {
+            let args = CreateArgs {
                 title: format!("Issue {}", i),
                 description: Some(format!("Description for issue {}", i)),
                 author_name: Some(author.name.clone()),
                 author_email: Some(author.email.clone()),
             };
 
-            let result = handle_new(repo_path.clone(), args);
-            assert!(result.is_ok(), "New command should succeed for issue {}", i);
+            let result = handle_create(repo_path.clone(), args);
+            assert!(result.is_ok(), "Create command should succeed for issue {}", i);
         }
 
         // Note: With the current placeholder implementation, we can't verify
-        // the issue storage directly. The test verifies that multiple handle_new
+        // the issue storage directly. The test verifies that multiple handle_create
         // calls execute without error, testing sequential issue creation.
         //
         // In a full implementation, we would verify:
