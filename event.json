@@ -1,1 +1,1 @@
-{"Created":{"title":"Test create command","description":"Verify that the command rename from 'new' to 'create' is working correctly","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:58:49.158402Z"}}
+{"StatusChanged":{"from":"Todo","to":"Done","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T23:06:11.514685Z"}}
