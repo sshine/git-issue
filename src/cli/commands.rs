@@ -60,6 +60,10 @@ pub struct ListArgs {
     /// Show only issue IDs and titles
     #[arg(short, long)]
     pub compact: bool,
+
+    /// Show all issues including completed ones
+    #[arg(short, long)]
+    pub all: bool,
 }
 
 #[derive(Args)]
@@ -126,8 +130,15 @@ fn handle_list(repo_path: std::path::PathBuf, args: ListArgs) -> Result<()> {
             .into_iter()
             .filter(|issue| issue.status == status)
             .collect()
-    } else {
+    } else if args.all {
+        // Show all issues when --all flag is specified
         issues
+    } else {
+        // By default, exclude "done" issues
+        issues
+            .into_iter()
+            .filter(|issue| issue.status != IssueStatus::Done)
+            .collect()
     };
 
     if args.compact {

@@ -2,9 +2,7 @@ pub mod errors;
 pub mod issue_store;
 pub mod repo;
 
-pub use errors::{GitError, GitResult, StorageError, StorageResult};
 pub use issue_store::IssueStore;
-pub use repo::{CommitData, GitRepository, TreeEntry};
 
 #[cfg(test)]
 pub mod test_helpers {

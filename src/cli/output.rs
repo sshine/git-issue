@@ -1,5 +1,5 @@
 use crate::common::{Issue, IssueStatus};
-use console::{Color, Style, style};
+use console::{Color, style};
 
 pub fn format_issue_status(status: &IssueStatus) -> console::StyledObject<&str> {
     match status {

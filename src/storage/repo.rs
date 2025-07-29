@@ -425,7 +425,7 @@ impl GitRepository {
 
     /// Delete a reference
     pub fn delete_ref(&mut self, name: &str) -> GitResult<()> {
-        use gix::refs::transaction::{Change, LogChange, PreviousValue, RefEdit};
+        use gix::refs::transaction::{Change, PreviousValue, RefEdit};
 
         let edit = RefEdit {
             change: Change::Delete {
