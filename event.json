@@ -1,0 +1,1 @@
+{"Created":{"title":"Create GIT_MODEL.md documentation","description":"Create doc/GIT_MODEL.md documenting how issues and events are stored in git objects. Include event-sourcing implementation details, commit chain structure, and examples of git object inspection commands.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:19:17.128148Z"}}
