@@ -117,7 +117,10 @@ fn handle_create_with_env(
 
     let issue_id = store.create_issue(args.title, description, author)?;
 
-    println!("{}", success_message(&format!("Created issue #{}", issue_id)));
+    println!(
+        "{}",
+        success_message(&format!("Created issue #{}", issue_id))
+    );
     Ok(())
 }
 
@@ -171,7 +174,13 @@ fn handle_status(repo_path: std::path::PathBuf, args: StatusArgs) -> Result<()> 
 
     store.update_issue_status(args.id, new_status, author)?;
 
-    println!("{}", success_message(&format!("Updated issue #{} status to {}", args.id, new_status)));
+    println!(
+        "{}",
+        success_message(&format!(
+            "Updated issue #{} status to {}",
+            args.id, new_status
+        ))
+    );
     Ok(())
 }
 
@@ -338,7 +347,11 @@ mod tests {
             };
 
             let result = handle_create(repo_path.clone(), args);
-            assert!(result.is_ok(), "Create command should succeed for issue {}", i);
+            assert!(
+                result.is_ok(),
+                "Create command should succeed for issue {}",
+                i
+            );
         }
 
         // Note: With the current placeholder implementation, we can't verify

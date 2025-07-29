@@ -79,6 +79,8 @@ pub fn format_issue_detailed(issue: &Issue) -> String {
         }
     }
 
+    output.push_str("\n");
+
     output
 }
 
