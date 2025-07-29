@@ -16,10 +16,6 @@ pub struct Cli {
     /// Repository path (defaults to current directory)
     #[arg(short, long, global = true)]
     pub repo: Option<std::path::PathBuf>,
-
-    /// Enable verbose output
-    #[arg(short, long, global = true)]
-    pub verbose: bool,
 }
 
 #[derive(Subcommand)]
