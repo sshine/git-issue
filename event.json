@@ -1,0 +1,1 @@
+{"Created":{"title":"Add comment command to CLI","description":"Implement 'comment <id> <text>' command to expose the existing add_comment() storage functionality. Should allow users to add comments to existing issues via CLI.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:16:31.555468Z"}}
