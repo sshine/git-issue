@@ -1,1 +1,1 @@
-{"Created":{"title":"Clean up unused code and imports","description":"Remove unused imports, dead code, and compiler warnings throughout the codebase. Use cargo fix where possible and manually clean up remaining issues to reduce build noise.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:19:22.807022Z"}}
+{"StatusChanged":{"from":"Todo","to":"Done","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:42:09.909374Z"}}
