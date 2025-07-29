@@ -1,0 +1,1 @@
+{"Created":{"title":"Add label management commands to CLI","description":"Implement 'label add <id> <label>' and 'label remove <id> <label>' commands to expose the existing add_label() and remove_label() storage functionality. Should allow users to manage issue labels via CLI.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:18:40.657573Z"}}
