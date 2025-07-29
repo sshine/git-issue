@@ -19,7 +19,7 @@ Git uses **references** to create human-readable names that point to objects:
 - `refs/tags/v1.0` → points to a specific commit or tag object
 - `refs/remotes/origin/main` → tracks remote branch state
 
-We'll use a custom ref namespace: `refs/git-tracker/issues/{issue-id}`
+We'll use a custom ref namespace: `refs/git-issue/issues/{issue-id}`
 
 ## Git-Tracker Storage Strategy
 
@@ -27,8 +27,8 @@ We'll use a custom ref namespace: `refs/git-tracker/issues/{issue-id}`
 
 Issues will use **sequential u64 identifiers** starting from 1:
 - Issue IDs: 1, 2, 3, 4, ...
-- Stored in `refs/git-tracker/issues/1`, `refs/git-tracker/issues/2`, etc.
-- Next issue ID tracked in `refs/git-tracker/meta/next-issue-id`
+- Stored in `refs/git-issue/issues/1`, `refs/git-issue/issues/2`, etc.
+- Next issue ID tracked in `refs/git-issue/meta/next-issue-id`
 - Comments use format: `{issue-id}-{sequence}` (e.g., "1-1", "1-2" for issue 1's comments)
 
 ### Issue Storage as Event Chains
@@ -37,12 +37,12 @@ Each issue will be stored as a **chain of commit objects**, where:
 1. **First commit** contains the "Created" event (issue birth)
 2. **Subsequent commits** contain additional events (status changes, comments, etc.)
 3. **Each commit** points to its parent, forming an immutable event log
-4. **Issue ref** (`refs/git-tracker/issues/{issue-id}`) points to the latest commit
+4. **Issue ref** (`refs/git-issue/issues/{issue-id}`) points to the latest commit
 
 ### Object Structure Design
 
 ```
-refs/git-tracker/issues/1
+refs/git-issue/issues/1
     ↓
 Commit Object (latest event)
 ├── Tree Object
@@ -73,7 +73,7 @@ Previous Event Commit
 ```rust
 pub struct GitRepository {
     repo: gix::Repository,
-    refs_namespace: String, // "refs/git-tracker"
+    refs_namespace: String, // "refs/git-issue"
 }
 
 impl GitRepository {

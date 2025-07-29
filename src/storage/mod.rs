@@ -11,7 +11,7 @@ pub mod test_helpers {
     use std::path::Path;
     use tempfile::TempDir;
 
-    /// Creates a temporary directory with an initialized Git repository and git-tracker
+    /// Creates a temporary directory with an initialized Git repository and git-issue
     pub fn setup_temp_repo() -> (TempDir, GitRepository) {
         let temp_dir = TempDir::new().expect("Failed to create temporary directory");
         let repo =

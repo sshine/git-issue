@@ -4,7 +4,7 @@ use super::errors::{StorageError, StorageResult};
 use super::repo::{GitRepository, TreeEntry};
 use crate::common::{Identity, Issue, IssueEvent, IssueId, IssueStatus};
 
-/// High-level issue CRUD operations using git-tracker's event-sourced storage
+/// High-level issue CRUD operations using git-issue's event-sourced storage
 ///
 /// `IssueStore` provides a clean interface for managing issues backed by Git storage.
 /// Each issue is stored as a chain of commits representing events, with the issue
@@ -12,7 +12,7 @@ use crate::common::{Identity, Issue, IssueEvent, IssueId, IssueStatus};
 ///
 /// ## Storage Architecture
 ///
-/// - **Issues**: Stored as commit chains in `refs/git-tracker/issues/{issue_id}`
+/// - **Issues**: Stored as commit chains in `refs/git-issue/issues/{issue_id}`
 /// - **Events**: Each commit represents a single `IssueEvent` (created, status changed, etc.)
 /// - **Reconstruction**: Issues are rebuilt by replaying all events in chronological order
 /// - **Concurrency**: Uses Git's atomic reference updates for thread-safe operations
@@ -20,8 +20,8 @@ use crate::common::{Identity, Issue, IssueEvent, IssueId, IssueStatus};
 /// ## Example Usage
 ///
 /// ```rust,no_run
-/// use git_tracker::storage::IssueStore;
-/// use git_tracker::common::{Identity, IssueStatus};
+/// use git_issue::storage::IssueStore;
+/// use git_issue::common::{Identity, IssueStatus};
 /// use std::path::Path;
 ///
 /// let mut store = IssueStore::open(Path::new("."))?;
@@ -268,12 +268,12 @@ impl IssueStore {
 
     /// List all issue IDs in the repository
     pub fn list_issue_ids(&self) -> StorageResult<Vec<IssueId>> {
-        let refs = self.repo.list_refs("refs/git-tracker/issues/")?;
+        let refs = self.repo.list_refs("refs/git-issue/issues/")?;
         let mut issue_ids = Vec::new();
 
         for (ref_name, _oid) in refs {
-            // Extract issue ID from ref name: "refs/git-tracker/issues/123" -> 123
-            if let Some(id_str) = ref_name.strip_prefix("refs/git-tracker/issues/") {
+            // Extract issue ID from ref name: "refs/git-issue/issues/123" -> 123
+            if let Some(id_str) = ref_name.strip_prefix("refs/git-issue/issues/") {
                 match id_str.parse::<u64>() {
                     Ok(issue_id) => issue_ids.push(issue_id),
                     Err(_) => {

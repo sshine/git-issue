@@ -1,8 +1,8 @@
 [package]
-name = "git-tracker"
+name = "git-issue"
 version = "0.1.0"
 edition = "2024"
-authors = ["Git Tracker Contributors"]
+authors = ["Git Issue Contributors"]
 description = "An offline-first issue tracker with git backend"
 license = "MIT OR Apache-2.0"
 

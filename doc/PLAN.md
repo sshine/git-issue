@@ -65,7 +65,7 @@ pub type CommentId = String;
 
 - **Issue Objects**: Stored as git objects with unique hashes
 - **Event Log**: Append-only sequence of events per issue
-- **Refs Structure**: `refs/git-tracker/issues/{issue-id}` points to latest event
+- **Refs Structure**: `refs/git-issue/issues/{issue-id}` points to latest event
 - **Merge Strategy**: Operational Transform for concurrent updates
 
 ### Identity Management
@@ -102,7 +102,7 @@ pub trait IssueRepository {
 
 **Command Structure**
 ```
-git-tracker <command> [args]
+git-issue <command> [args]
 
 Commands:
   new <title>              Create new issue
@@ -147,7 +147,7 @@ WS     /ws                  - Real-time event stream
 ### 4. Synchronization Engine (`sync/`)
 
 **File Watching**
-- Monitor `.git/refs/git-tracker/` for external changes
+- Monitor `.git/refs/git-issue/` for external changes
 - Detect concurrent modifications
 - Trigger UI updates via WebSocket
 
@@ -201,9 +201,9 @@ pub struct SyncManager {
 ```
 project-root/
 ├── .git/
-│   └── refs/git-tracker/    # Issue storage
+│   └── refs/git-issue/    # Issue storage
 ├── src/                     # Project source
-└── git-tracker.toml         # Configuration
+└── git-issue.toml         # Configuration
 ```
 
 ### Multi-repository Mode
@@ -211,7 +211,7 @@ project-root/
 workspace/
 ├── repo-a/                  # Git repository A
 ├── repo-b/                  # Git repository B  
-└── .git-tracker/            # Shared tracker state
+└── .git-issue/            # Shared tracker state
     ├── config.toml
     └── cache/
 ```
@@ -219,15 +219,15 @@ workspace/
 ## Workflow Integration
 
 ### Kanban Workflow
-1. **Issue Creation**: `git-tracker new "Fix auth bug"` → Todo status
-2. **Start Work**: `git-tracker status {id} in-progress` + branch creation
-3. **Complete Work**: `git-tracker status {id} done` + merge completion
+1. **Issue Creation**: `git-issue new "Fix auth bug"` → Todo status
+2. **Start Work**: `git-issue status {id} in-progress` + branch creation
+3. **Complete Work**: `git-issue status {id} done` + merge completion
 
 ### Branch Integration
 ```bash
 # Automatic branch management
-git-tracker start {issue-id}  # Creates branch, sets in-progress
-git-tracker finish {issue-id} # Merges branch, sets done
+git-issue start {issue-id}  # Creates branch, sets in-progress
+git-issue finish {issue-id} # Merges branch, sets done
 ```
 
 ### AI Agent Integration

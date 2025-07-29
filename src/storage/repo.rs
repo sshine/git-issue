@@ -6,23 +6,23 @@ use super::errors::{GitError, GitResult};
 use crate::common::Identity;
 use gix::prelude::{FindExt, Write};
 
-/// A Git repository wrapper for git-tracker's issue storage
+/// A Git repository wrapper for git-issue's issue storage
 ///
-/// `GitRepository` provides a high-level interface for storing git-tracker issues
+/// `GitRepository` provides a high-level interface for storing git-issue issues
 /// and events in a Git repository using an event-sourced architecture. Issues are
 /// stored as chains of commit objects, with each commit representing an issue event.
 ///
 /// ## Storage Model
 ///
-/// - **Issues**: Stored as commit chains in `refs/git-tracker/issues/{issue_id}`
+/// - **Issues**: Stored as commit chains in `refs/git-issue/issues/{issue_id}`
 /// - **Events**: Each commit in the chain represents a single `IssueEvent`
-/// - **ID Management**: Sequential issue IDs tracked in `refs/git-tracker/meta/next-issue-id`
-/// - **Namespace**: All git-tracker refs use the `refs/git-tracker/` prefix
+/// - **ID Management**: Sequential issue IDs tracked in `refs/git-issue/meta/next-issue-id`
+/// - **Namespace**: All git-issue refs use the `refs/git-issue/` prefix
 ///
 /// ## Example Usage
 ///
 /// ```rust,no_run
-/// use git_tracker::storage::GitRepository;
+/// use git_issue::storage::GitRepository;
 /// use std::path::Path;
 ///
 /// // Open existing repository
@@ -47,7 +47,7 @@ pub struct GitRepository {
 /// Represents an entry in a Git tree object
 ///
 /// A `TreeEntry` corresponds to a single file or subdirectory within a Git tree.
-/// In git-tracker's context, trees are used to store serialized issue events
+/// In git-issue's context, trees are used to store serialized issue events
 /// as JSON blobs within commit objects.
 ///
 /// ## Fields
@@ -66,7 +66,7 @@ pub struct GitRepository {
 /// ## Example
 ///
 /// ```rust
-/// use git_tracker::storage::TreeEntry;
+/// use git_issue::storage::TreeEntry;
 /// use gix::ObjectId;
 ///
 /// let entry = TreeEntry {
@@ -85,7 +85,7 @@ pub struct TreeEntry {
 /// Parsed data from a Git commit object
 ///
 /// `CommitData` represents the structured information extracted from a Git commit.
-/// In git-tracker's event-sourced architecture, each commit represents a single
+/// In git-issue's event-sourced architecture, each commit represents a single
 /// issue event, with the commit message describing the event type and the tree
 /// containing the serialized event data.
 ///
@@ -97,7 +97,7 @@ pub struct TreeEntry {
 /// - `message`: Commit message describing the change
 /// - `timestamp`: When the commit was created (UTC)
 ///
-/// ## Usage in git-tracker
+/// ## Usage in git-issue
 ///
 /// Each issue event is stored as a commit:
 /// - **Commit message**: Describes the event (e.g., "Created: Fix auth bug")
@@ -108,8 +108,8 @@ pub struct TreeEntry {
 /// ## Example
 ///
 /// ```rust
-/// use git_tracker::storage::CommitData;
-/// use git_tracker::common::Identity;
+/// use git_issue::storage::CommitData;
+/// use git_issue::common::Identity;
 /// use chrono::Utc;
 ///
 /// let commit = CommitData {
@@ -138,7 +138,7 @@ impl GitRepository {
 
         let git_repo = Self {
             repo,
-            refs_namespace: "refs/git-tracker".to_string(),
+            refs_namespace: "refs/git-issue".to_string(),
         };
 
         Ok(git_repo)
@@ -150,7 +150,7 @@ impl GitRepository {
 
         let git_repo = Self {
             repo,
-            refs_namespace: "refs/git-tracker".to_string(),
+            refs_namespace: "refs/git-issue".to_string(),
         };
 
         Ok(git_repo)
@@ -577,7 +577,7 @@ mod tests {
     use crate::storage::test_helpers::*;
 
     #[test]
-    fn test_initialize_git_tracker_repo() {
+    fn test_initialize_git_issue_repo() {
         let (_temp_dir, mut repo) = setup_temp_repo();
 
         // Verify the repository was initialized successfully
@@ -614,7 +614,7 @@ mod tests {
         // Test issue reference name generation
         let ref_name = repo.issue_ref_name(1);
         assert_eq!(
-            ref_name, "refs/git-tracker/issues/1",
+            ref_name, "refs/git-issue/issues/1",
             "Issue ref name should follow expected format"
         );
     }

@@ -34,7 +34,7 @@
   - `apply_event()` - append event to issue history  
   - `get_issue()` - reconstruct issue from event log
   - `list_issues()` - list all issues with basic filtering
-- Set up refs structure: `refs/git-tracker/issues/{issue-id}`
+- Set up refs structure: `refs/git-issue/issues/{issue-id}`
 - Add comprehensive tests for storage operations
 
 ### 4. Basic CLI (`src/cli/`)

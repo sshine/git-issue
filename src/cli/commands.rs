@@ -1,11 +1,12 @@
 use anyhow::Result;
 use clap::{Args, Parser, Subcommand};
 
+use crate::cli::output::{format_issue_compact, format_issue_detailed, success_message};
 use crate::common::{EnvProvider, Identity, IssueId, IssueStatus, SystemEnvProvider};
 use crate::storage::IssueStore;
 
 #[derive(Parser)]
-#[command(name = "git-tracker")]
+#[command(name = "git-issue")]
 #[command(about = "An offline-first issue tracker with git backend")]
 #[command(version)]
 pub struct Cli {
@@ -116,7 +117,7 @@ fn handle_new_with_env(
 
     let issue_id = store.create_issue(args.title, description, author)?;
 
-    println!("Created issue #{}", issue_id);
+    println!("{}", success_message(&format!("Created issue #{}", issue_id)));
     Ok(())
 }
 
@@ -143,26 +144,11 @@ fn handle_list(repo_path: std::path::PathBuf, args: ListArgs) -> Result<()> {
 
     if args.compact {
         for issue in filtered_issues {
-            println!("#{} {}", issue.id, issue.title);
+            println!("{}", format_issue_compact(&issue));
         }
     } else {
         for issue in filtered_issues {
-            println!("#{} {} [{}]", issue.id, issue.title, issue.status);
-            if !issue.description.is_empty() {
-                println!("  {}", issue.description);
-            }
-            println!(
-                "  Created by: {} on {}",
-                issue.created_by.name,
-                issue.created_at.format("%Y-%m-%d %H:%M")
-            );
-            if !issue.labels.is_empty() {
-                println!("  Labels: {}", issue.labels.join(", "));
-            }
-            if let Some(ref assignee) = issue.assignee {
-                println!("  Assigned to: {}", assignee.name);
-            }
-            println!();
+            print!("{}", format_issue_detailed(&issue));
         }
     }
 
@@ -173,44 +159,7 @@ fn handle_show(repo_path: std::path::PathBuf, args: ShowArgs) -> Result<()> {
     let store = IssueStore::open(&repo_path)?;
     let issue = store.get_issue(args.id)?;
 
-    println!("Issue #{}: {}", issue.id, issue.title);
-    println!("Status: {}", issue.status);
-    println!(
-        "Created by: {} ({}) on {}",
-        issue.created_by.name,
-        issue.created_by.email,
-        issue.created_at.format("%Y-%m-%d %H:%M:%S")
-    );
-    println!(
-        "Last updated: {}",
-        issue.updated_at.format("%Y-%m-%d %H:%M:%S")
-    );
-
-    if let Some(ref assignee) = issue.assignee {
-        println!("Assigned to: {} ({})", assignee.name, assignee.email);
-    }
-
-    if !issue.labels.is_empty() {
-        println!("Labels: {}", issue.labels.join(", "));
-    }
-
-    if !issue.description.is_empty() {
-        println!("\nDescription:");
-        println!("{}", issue.description);
-    }
-
-    if !issue.comments.is_empty() {
-        println!("\nComments:");
-        for comment in &issue.comments {
-            println!(
-                "  {} by {} on {}:",
-                comment.id,
-                comment.author.name,
-                comment.created_at.format("%Y-%m-%d %H:%M")
-            );
-            println!("    {}", comment.content);
-        }
-    }
+    print!("{}", format_issue_detailed(&issue));
 
     Ok(())
 }
@@ -222,7 +171,7 @@ fn handle_status(repo_path: std::path::PathBuf, args: StatusArgs) -> Result<()> 
 
     store.update_issue_status(args.id, new_status, author)?;
 
-    println!("Updated issue #{} status to {}", args.id, new_status);
+    println!("{}", success_message(&format!("Updated issue #{} status to {}", args.id, new_status)));
     Ok(())
 }
 
