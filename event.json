@@ -1,0 +1,1 @@
+{"Created":{"title":"Add advanced filtering to list command","description":"Enhance the 'list' command with additional filter options: filter by assignee, labels, date ranges, and search in titles/descriptions. Improve usability for large issue sets.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:21:20.997998Z"}}
