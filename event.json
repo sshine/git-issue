@@ -1,0 +1,1 @@
+{"Created":{"title":"Add git-tracker.toml configuration system","description":"Implement configuration file support with git-tracker.toml. Allow users to configure default settings, output preferences, branch naming patterns, and other customizable behavior.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:21:25.890269Z"}}
