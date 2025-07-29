@@ -1,0 +1,1 @@
+{"Created":{"title":"Implement branch integration commands","description":"Add 'start <id>' and 'finish <id>' commands for kanban workflow. 'start' should create a branch and set issue status to in-progress. 'finish' should merge the branch and set status to done.","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T22:21:15.908882Z"}}
