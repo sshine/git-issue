@@ -110,6 +110,13 @@ impl Issue {
             self.updated_at = Utc::now();
         }
     }
+
+    pub fn change_description(&mut self, new_description: String) {
+        if self.description != new_description {
+            self.description = new_description;
+            self.updated_at = Utc::now();
+        }
+    }
 }
 
 impl Issue {
@@ -207,6 +214,14 @@ impl Issue {
                 ..
             } => {
                 self.assignee = new_assignee.clone();
+                self.updated_at = *timestamp;
+            }
+            IssueEvent::DescriptionChanged {
+                new_description,
+                timestamp,
+                ..
+            } => {
+                self.description = new_description.clone();
                 self.updated_at = *timestamp;
             }
         }

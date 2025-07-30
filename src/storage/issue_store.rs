@@ -311,10 +311,37 @@ impl IssueStore {
         self.repo.path()
     }
 
+    /// Get a git config value
+    pub fn get_config(&self, key: &str) -> Option<String> {
+        self.repo.get_config(key)
+    }
+
+    /// Update an issue's description
+    pub fn update_description(
+        &mut self,
+        issue_id: IssueId,
+        new_description: String,
+        author: Identity,
+    ) -> StorageResult<()> {
+        let issue = self.get_issue(issue_id)?;
+        let old_description = issue.description.clone();
+
+        if old_description != new_description {
+            let event = IssueEvent::description_changed(old_description, new_description, author);
+
+            // Get the current HEAD commit to use as parent
+            let parent_commit = self.get_issue_head_commit(issue_id)?;
+
+            self.append_event(issue_id, event, Some(parent_commit))?;
+        }
+
+        Ok(())
+    }
+
     // Private helper methods
 
     /// Get all events for an issue in chronological order
-    fn get_issue_events(&self, issue_id: IssueId) -> StorageResult<Vec<IssueEvent>> {
+    pub fn get_issue_events(&self, issue_id: IssueId) -> StorageResult<Vec<IssueEvent>> {
         let ref_name = self.repo.issue_ref_name(issue_id);
 
         // Get the HEAD commit for this issue
@@ -408,6 +435,7 @@ impl IssueStore {
                 Some(identity) => format!("AssigneeChanged: {}", identity.name),
                 None => "AssigneeChanged: unassigned".to_string(),
             },
+            IssueEvent::DescriptionChanged { .. } => "DescriptionChanged".to_string(),
         };
 
         // Create the commit

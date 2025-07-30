@@ -45,6 +45,12 @@ pub enum IssueEvent {
         author: Identity,
         timestamp: DateTime<Utc>,
     },
+    DescriptionChanged {
+        old_description: String,
+        new_description: String,
+        author: Identity,
+        timestamp: DateTime<Utc>,
+    },
 }
 
 impl IssueEvent {
@@ -113,6 +119,19 @@ impl IssueEvent {
         }
     }
 
+    pub fn description_changed(
+        old_description: String,
+        new_description: String,
+        author: Identity,
+    ) -> Self {
+        IssueEvent::DescriptionChanged {
+            old_description,
+            new_description,
+            author,
+            timestamp: Utc::now(),
+        }
+    }
+
     pub fn timestamp(&self) -> DateTime<Utc> {
         match self {
             IssueEvent::Created { timestamp, .. } => *timestamp,
@@ -122,6 +141,7 @@ impl IssueEvent {
             IssueEvent::LabelRemoved { timestamp, .. } => *timestamp,
             IssueEvent::TitleChanged { timestamp, .. } => *timestamp,
             IssueEvent::AssigneeChanged { timestamp, .. } => *timestamp,
+            IssueEvent::DescriptionChanged { timestamp, .. } => *timestamp,
         }
     }
 
@@ -134,6 +154,7 @@ impl IssueEvent {
             IssueEvent::LabelRemoved { author, .. } => author,
             IssueEvent::TitleChanged { author, .. } => author,
             IssueEvent::AssigneeChanged { author, .. } => author,
+            IssueEvent::DescriptionChanged { author, .. } => author,
         }
     }
 }

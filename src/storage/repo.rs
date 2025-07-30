@@ -22,7 +22,7 @@ use gix::prelude::{FindExt, Write};
 /// ## Example Usage
 ///
 /// ```rust,no_run
-/// use git_issue::storage::GitRepository;
+/// use git_issue::storage::repo::GitRepository;
 /// use std::path::Path;
 ///
 /// // Open existing repository
@@ -66,7 +66,7 @@ pub struct GitRepository {
 /// ## Example
 ///
 /// ```rust
-/// use git_issue::storage::TreeEntry;
+/// use git_issue::storage::repo::TreeEntry;
 /// use gix::ObjectId;
 ///
 /// let entry = TreeEntry {
@@ -108,7 +108,7 @@ pub struct TreeEntry {
 /// ## Example
 ///
 /// ```rust
-/// use git_issue::storage::CommitData;
+/// use git_issue::storage::repo::CommitData;
 /// use git_issue::common::Identity;
 /// use chrono::Utc;
 ///
@@ -562,6 +562,14 @@ impl GitRepository {
     /// Get the reference name for an issue
     pub fn issue_ref_name(&self, issue_id: u64) -> String {
         format!("{}/issues/{}", self.refs_namespace, issue_id)
+    }
+
+    /// Get a git config value
+    pub fn get_config(&self, key: &str) -> Option<String> {
+        self.repo
+            .config_snapshot()
+            .string(key)
+            .map(|v| v.to_string())
     }
 
     /// Get the repository path
