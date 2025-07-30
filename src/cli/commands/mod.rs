@@ -3,6 +3,7 @@ use clap::{Parser, Subcommand};
 
 mod create;
 mod edit;
+mod label;
 mod list;
 mod show;
 mod status;
@@ -11,6 +12,7 @@ mod status;
 pub use create::handle_create_with_env;
 pub use create::{CreateArgs, handle_create};
 pub use edit::{EditArgs, handle_edit};
+pub use label::{LabelArgs, handle_label};
 pub use list::{ListArgs, handle_list};
 pub use show::{ShowArgs, handle_show};
 pub use status::{StatusArgs, handle_status};
@@ -43,6 +45,8 @@ pub enum Commands {
     Status(StatusArgs),
     /// Edit an issue
     Edit(EditArgs),
+    /// Manage issue labels
+    Label(LabelArgs),
 }
 
 pub fn run_command(cli: Cli) -> Result<()> {
@@ -54,6 +58,7 @@ pub fn run_command(cli: Cli) -> Result<()> {
         Commands::Show(args) => handle_show(repo_path, args),
         Commands::Status(args) => handle_status(repo_path, args),
         Commands::Edit(args) => handle_edit(repo_path, args),
+        Commands::Label(args) => handle_label(repo_path, args),
     }
 }
 
