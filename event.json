@@ -1,1 +1,1 @@
-{"StatusChanged":{"from":"Todo","to":"InProgress","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T09:31:20.536830Z"}}
+{"TitleChanged":{"old_title":"Add shorthand arguments to edit: -t for title, -d for description, -s for status, -a for assignee, -n for --author-name, -e for --author-email.","new_title":"Add shorthand arguments to edit command (implemented)","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T09:32:54.777332Z"}}
