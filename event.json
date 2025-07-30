@@ -1,1 +1,1 @@
-{"Created":{"title":"Add priority to Issue model: 0 (no priority, default), 1 (urgent), 2 (high), 3 (medium), 4 (low)","description":"","author":{"name":"simonshine","email":"unknown@localhost"},"timestamp":"2025-07-29T23:05:06.356531Z"}}
+{"StatusChanged":{"from":"Todo","to":"InProgress","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T10:32:30.013148Z"}}
