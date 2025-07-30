@@ -1,1 +1,1 @@
-{"AssigneeChanged":{"old_assignee":{"name":"","email":"user1@example.com"},"new_assignee":{"name":"","email":"edit-assignee@example.com"},"author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T17:33:39.637410Z"}}
+{"StatusChanged":{"from":"Todo","to":"Done","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T18:21:30.724344Z"}}
