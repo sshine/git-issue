@@ -7,13 +7,13 @@ mod list;
 mod show;
 mod status;
 
-pub use create::{handle_create, CreateArgs};
 #[cfg(test)]
 pub use create::handle_create_with_env;
-pub use edit::{handle_edit, EditArgs};
-pub use list::{handle_list, ListArgs};
-pub use show::{handle_show, ShowArgs};
-pub use status::{handle_status, StatusArgs};
+pub use create::{CreateArgs, handle_create};
+pub use edit::{EditArgs, handle_edit};
+pub use list::{ListArgs, handle_list};
+pub use show::{ShowArgs, handle_show};
+pub use status::{StatusArgs, handle_status};
 
 use crate::common::{EnvProvider, Identity, IssueStatus};
 use crate::storage::IssueStore;

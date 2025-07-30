@@ -162,7 +162,10 @@ mod tests {
         issues.retain(|issue| {
             issue.title.to_lowercase().contains(search_lower)
                 || issue.description.to_lowercase().contains(search_lower)
-                || issue.labels.iter().any(|label| label.to_lowercase().contains(search_lower))
+                || issue
+                    .labels
+                    .iter()
+                    .any(|label| label.to_lowercase().contains(search_lower))
         });
 
         // Apply default status filter (exclude done)
@@ -186,11 +189,18 @@ mod tests {
         issues.retain(|issue| {
             issue.title.to_lowercase().contains(&search_lower)
                 || issue.description.to_lowercase().contains(&search_lower)
-                || issue.labels.iter().any(|label| label.to_lowercase().contains(&search_lower))
+                || issue
+                    .labels
+                    .iter()
+                    .any(|label| label.to_lowercase().contains(&search_lower))
         });
 
         // Include all issues (no status filter)
-        assert_eq!(issues.len(), 4, "Should find 4 issues containing 'BUG' (case-insensitive)");
+        assert_eq!(
+            issues.len(),
+            4,
+            "Should find 4 issues containing 'BUG' (case-insensitive)"
+        );
     }
 
     #[test]
@@ -205,7 +215,10 @@ mod tests {
         issues.retain(|issue| {
             issue.title.to_lowercase().contains(search_lower)
                 || issue.description.to_lowercase().contains(search_lower)
-                || issue.labels.iter().any(|label| label.to_lowercase().contains(search_lower))
+                || issue
+                    .labels
+                    .iter()
+                    .any(|label| label.to_lowercase().contains(search_lower))
         });
 
         // With --all flag, should include done issues
@@ -224,10 +237,17 @@ mod tests {
         issues.retain(|issue| {
             issue.title.to_lowercase().contains(search_lower)
                 || issue.description.to_lowercase().contains(search_lower)
-                || issue.labels.iter().any(|label| label.to_lowercase().contains(search_lower))
+                || issue
+                    .labels
+                    .iter()
+                    .any(|label| label.to_lowercase().contains(search_lower))
         });
 
-        assert_eq!(issues.len(), 0, "Should find no issues for nonexistent search term");
+        assert_eq!(
+            issues.len(),
+            0,
+            "Should find no issues for nonexistent search term"
+        );
     }
 
     #[test]
@@ -255,7 +275,10 @@ mod tests {
         issues.retain(|issue| {
             issue.title.to_lowercase().contains(search_lower)
                 || issue.description.to_lowercase().contains(search_lower)
-                || issue.labels.iter().any(|label| label.to_lowercase().contains(search_lower))
+                || issue
+                    .labels
+                    .iter()
+                    .any(|label| label.to_lowercase().contains(search_lower))
         });
 
         // Apply status filter
@@ -264,6 +287,10 @@ mod tests {
             .filter(|issue| issue.status == IssueStatus::InProgress)
             .collect();
 
-        assert_eq!(in_progress_issues.len(), 1, "Should find 1 in-progress issue containing 'bug'");
+        assert_eq!(
+            in_progress_issues.len(),
+            1,
+            "Should find 1 in-progress issue containing 'bug'"
+        );
     }
 }

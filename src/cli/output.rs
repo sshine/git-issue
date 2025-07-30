@@ -38,6 +38,30 @@ fn format_time_ago(duration: Duration) -> String {
     format!("{} year{}", years, if years == 1 { "" } else { "s" })
 }
 
+fn truncate_to_first_paragraph(text: &str) -> (String, Option<usize>) {
+    if text.is_empty() {
+        return (String::new(), None);
+    }
+
+    // Split by double newlines to find paragraphs
+    let paragraphs: Vec<&str> = text.split("\n\n").collect();
+
+    if paragraphs.len() <= 1 {
+        // No paragraph break found, return original text
+        return (text.to_string(), None);
+    }
+
+    let first_paragraph = paragraphs[0].trim();
+    let remaining_text = paragraphs[1..].join("\n\n");
+    let remaining_words = remaining_text.split_whitespace().count();
+
+    if remaining_words > 0 {
+        (first_paragraph.to_string(), Some(remaining_words))
+    } else {
+        (first_paragraph.to_string(), None)
+    }
+}
+
 pub fn format_issue_status(status: &IssueStatus) -> console::StyledObject<&str> {
     match status {
         IssueStatus::Todo => style("TODO").fg(Color::Yellow),
@@ -48,10 +72,10 @@ pub fn format_issue_status(status: &IssueStatus) -> console::StyledObject<&str> 
 
 pub fn format_issue_compact(issue: &Issue) -> String {
     format!(
-        "#{} {} [{}]",
+        "#{} [{}] {}",
         style(issue.id).bold(),
-        issue.title,
-        format_issue_status(&issue.status)
+        format_issue_status(&issue.status),
+        issue.title
     )
 }
 
@@ -104,7 +128,19 @@ pub fn format_issue_detailed(issue: &Issue) -> String {
 
     if !issue.description.is_empty() {
         output.push_str("\nDescription:\n");
-        output.push_str(&format!("{}\n", issue.description));
+        let (truncated_desc, remaining_words) = truncate_to_first_paragraph(&issue.description);
+        output.push_str(&format!("{}\n", truncated_desc));
+
+        if let Some(word_count) = remaining_words {
+            output.push_str(&format!(
+                "{}\n",
+                style(format!(
+                    "[{} more words; run `git issue show #{}`]",
+                    word_count, issue.id
+                ))
+                .dim()
+            ));
+        }
     }
 
     if !issue.comments.is_empty() {
@@ -141,4 +177,107 @@ pub fn warning_message(message: &str) -> String {
 
 pub fn info_message(message: &str) -> String {
     format!("{} {}", style("ℹ").blue().bold(), message)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::common::{Identity, Issue, IssueStatus};
+    use chrono::Utc;
+
+    fn create_test_issue() -> Issue {
+        let author = Identity::new("Test Author".to_string(), "test@example.com".to_string());
+        Issue {
+            id: 42,
+            title: "Test Issue Title".to_string(),
+            description: "Single paragraph description".to_string(),
+            status: IssueStatus::Todo,
+            created_by: author.clone(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            assignee: None,
+            labels: vec!["test".to_string(), "formatting".to_string()],
+            comments: vec![],
+        }
+    }
+
+    #[test]
+    fn test_format_issue_compact() {
+        let issue = create_test_issue();
+        let formatted = format_issue_compact(&issue);
+
+        // Should contain the ID, status in brackets, and title
+        assert!(formatted.contains("#42"));
+        assert!(formatted.contains("[TODO]"));
+        assert!(formatted.contains("Test Issue Title"));
+
+        // Status should come before title
+        let status_pos = formatted.find("[TODO]").unwrap();
+        let title_pos = formatted.find("Test Issue Title").unwrap();
+        assert!(
+            status_pos < title_pos,
+            "Status should come before title in compact format"
+        );
+    }
+
+    #[test]
+    fn test_truncate_to_first_paragraph_single() {
+        let text = "This is a single paragraph with no breaks.";
+        let (truncated, remaining) = truncate_to_first_paragraph(text);
+
+        assert_eq!(truncated, text);
+        assert_eq!(remaining, None);
+    }
+
+    #[test]
+    fn test_truncate_to_first_paragraph_multiple() {
+        let text =
+            "First paragraph here.\n\nSecond paragraph with more content.\n\nThird paragraph too.";
+        let (truncated, remaining) = truncate_to_first_paragraph(text);
+
+        assert_eq!(truncated, "First paragraph here.");
+        assert!(remaining.is_some());
+        let word_count = remaining.unwrap();
+        assert!(word_count > 0);
+    }
+
+    #[test]
+    fn test_truncate_to_first_paragraph_empty() {
+        let text = "";
+        let (truncated, remaining) = truncate_to_first_paragraph(text);
+
+        assert_eq!(truncated, "");
+        assert_eq!(remaining, None);
+    }
+
+    #[test]
+    fn test_format_issue_detailed_with_multi_paragraph() {
+        let mut issue = create_test_issue();
+        issue.description =
+            "First paragraph here.\n\nSecond paragraph with additional information.".to_string();
+
+        let formatted = format_issue_detailed(&issue);
+
+        // Should contain the first paragraph
+        assert!(formatted.contains("First paragraph here."));
+
+        // Should not contain the second paragraph in full
+        assert!(!formatted.contains("Second paragraph with additional information."));
+
+        // Should contain the "more words" hint
+        assert!(formatted.contains("more words"));
+        assert!(formatted.contains("git issue show #42"));
+    }
+
+    #[test]
+    fn test_format_issue_detailed_single_paragraph() {
+        let issue = create_test_issue();
+        let formatted = format_issue_detailed(&issue);
+
+        // Should contain the full description
+        assert!(formatted.contains("Single paragraph description"));
+
+        // Should not contain the "more words" hint
+        assert!(!formatted.contains("more words"));
+    }
 }
