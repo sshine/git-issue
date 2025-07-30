@@ -1,1 +1,1 @@
-{"Created":{"title":"Running 'cargo run edit 51 --priority high -n 'Claude Code' -e 'claude@anthropic.com' --no-editor does not change author name/email","description":"The -n/--author-name and -e/--author-email parameters seem broken / like they don't do anything.","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T13:52:12.638308Z"}}
+{"StatusChanged":{"from":"Todo","to":"InProgress","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T14:04:49.132547Z"}}
