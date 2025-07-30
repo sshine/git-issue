@@ -2,7 +2,7 @@ use std::path::Path;
 
 use super::errors::{StorageError, StorageResult};
 use super::repo::{GitRepository, TreeEntry};
-use crate::common::{Identity, Issue, IssueEvent, IssueId, IssueStatus};
+use crate::common::{Identity, Issue, IssueEvent, IssueId, IssueStatus, Priority};
 
 /// High-level issue CRUD operations using git-issue's event-sourced storage
 ///
@@ -338,6 +338,34 @@ impl IssueStore {
         Ok(())
     }
 
+    /// Update an issue's priority
+    pub fn update_priority(
+        &mut self,
+        issue_id: IssueId,
+        new_priority: Priority,
+        author: Identity,
+    ) -> StorageResult<()> {
+        // Verify the issue exists and get current priority
+        let current_issue = self.get_issue(issue_id)?;
+
+        if current_issue.priority == new_priority {
+            // Priority unchanged, no-op
+            return Ok(());
+        }
+
+        // Create priority changed event
+        let priority_event =
+            IssueEvent::priority_changed(current_issue.priority, new_priority, author);
+
+        // Get the current HEAD commit to use as parent
+        let parent_commit = self.get_issue_head_commit(issue_id)?;
+
+        // Append the event to the issue chain
+        self.append_event(issue_id, priority_event, Some(parent_commit))?;
+
+        Ok(())
+    }
+
     // Private helper methods
 
     /// Get all events for an issue in chronological order
@@ -436,6 +464,13 @@ impl IssueStore {
                 None => "AssigneeChanged: unassigned".to_string(),
             },
             IssueEvent::DescriptionChanged { .. } => "DescriptionChanged".to_string(),
+            IssueEvent::PriorityChanged {
+                old_priority,
+                new_priority,
+                ..
+            } => {
+                format!("PriorityChanged: {} → {}", old_priority, new_priority)
+            }
         };
 
         // Create the commit

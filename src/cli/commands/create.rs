@@ -2,7 +2,7 @@ use anyhow::Result;
 use clap::Args;
 
 use crate::cli::output::success_message;
-use crate::common::{EnvProvider, SystemEnvProvider};
+use crate::common::{EnvProvider, Priority, SystemEnvProvider};
 use crate::storage::IssueStore;
 
 use super::get_author_identity;
@@ -23,6 +23,10 @@ pub struct CreateArgs {
     /// Author email (defaults to git config)
     #[arg(long)]
     pub author_email: Option<String>,
+
+    /// Priority level (none, urgent, high, medium, low, or 0-4)
+    #[arg(short, long)]
+    pub priority: Option<Priority>,
 }
 
 pub fn handle_create(repo_path: std::path::PathBuf, args: CreateArgs) -> Result<()> {
@@ -38,8 +42,14 @@ pub fn handle_create_with_env(
 
     let author = get_author_identity(args.author_name, args.author_email, &store, env_provider)?;
     let description = args.description.unwrap_or_else(|| "".to_string());
+    let priority = args.priority.unwrap_or_default();
 
-    let issue_id = store.create_issue(args.title, description, author)?;
+    let issue_id = store.create_issue(args.title, description, author.clone())?;
+
+    // Set priority if specified
+    if priority != Priority::default() {
+        store.update_priority(issue_id, priority, author)?;
+    }
 
     println!(
         "{}",
@@ -72,6 +82,7 @@ mod tests {
             description: Some("This is a test issue".to_string()),
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_create(repo_path.clone(), args);
@@ -105,6 +116,7 @@ mod tests {
             description: None,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_create(repo_path.clone(), args);
@@ -140,6 +152,7 @@ mod tests {
             description: None,
             author_name: None,
             author_email: None,
+            priority: None,
         };
 
         let result = handle_create_with_env(repo_path.clone(), args, mock_env);
@@ -175,6 +188,7 @@ mod tests {
                 description: Some(format!("Description for issue {}", i)),
                 author_name: Some(author.name.clone()),
                 author_email: Some(author.email.clone()),
+                priority: None,
             };
 
             let result = handle_create(repo_path.clone(), args);
@@ -202,5 +216,71 @@ mod tests {
         //     assert_eq!(issue.title, format!("Issue {}", expected_number));
         //     assert_eq!(issue.description, format!("Description for issue {}", expected_number));
         // }
+    }
+
+    #[test]
+    fn test_create_command_with_priority() {
+        let (_temp_dir, repo_path) = setup_temp_cli_repo();
+        let author = create_test_identity();
+
+        // Test creating a new issue with priority
+        let args = CreateArgs {
+            title: "High Priority Issue".to_string(),
+            description: Some("This is urgent".to_string()),
+            author_name: Some(author.name.clone()),
+            author_email: Some(author.email.clone()),
+            priority: Some(Priority::High),
+        };
+
+        let result = handle_create(repo_path.clone(), args);
+        assert!(
+            result.is_ok(),
+            "Create command with priority should succeed"
+        );
+
+        // Note: With the current placeholder implementation, we can't verify
+        // the issue storage as list_issues() returns empty results due to
+        // placeholder git operations. The test verifies that handle_create
+        // executes without error, which indicates the CLI integration works.
+        //
+        // In a full implementation, we would verify:
+        // let store = IssueStore::open(&repo_path).expect("Should be able to open store");
+        // let issues = store.list_issues().expect("Should be able to list issues");
+        // assert_eq!(issues.len(), 1, "Should have created one issue");
+        //
+        // let issue = &issues[0];
+        // assert_eq!(issue.title, "High Priority Issue");
+        // assert_eq!(issue.priority, Priority::High);
+    }
+
+    #[test]
+    fn test_create_command_default_priority() {
+        let (_temp_dir, repo_path) = setup_temp_cli_repo();
+        let author = create_test_identity();
+
+        // Test creating a new issue without priority (should default to None)
+        let args = CreateArgs {
+            title: "Normal Issue".to_string(),
+            description: Some("No priority set".to_string()),
+            author_name: Some(author.name.clone()),
+            author_email: Some(author.email.clone()),
+            priority: None,
+        };
+
+        let result = handle_create(repo_path.clone(), args);
+        assert!(
+            result.is_ok(),
+            "Create command without priority should succeed"
+        );
+
+        // Note: With the current placeholder implementation, we can't verify
+        // the issue storage. In a full implementation, we would verify:
+        // let store = IssueStore::open(&repo_path).expect("Should be able to open store");
+        // let issues = store.list_issues().expect("Should be able to list issues");
+        // assert_eq!(issues.len(), 1, "Should have created one issue");
+        //
+        // let issue = &issues[0];
+        // assert_eq!(issue.title, "Normal Issue");
+        // assert_eq!(issue.priority, Priority::None);
     }
 }

@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-use crate::common::{CommentId, Identity, IssueStatus};
+use crate::common::{CommentId, Identity, IssueStatus, Priority};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IssueEvent {
@@ -48,6 +48,12 @@ pub enum IssueEvent {
     DescriptionChanged {
         old_description: String,
         new_description: String,
+        author: Identity,
+        timestamp: DateTime<Utc>,
+    },
+    PriorityChanged {
+        old_priority: Priority,
+        new_priority: Priority,
         author: Identity,
         timestamp: DateTime<Utc>,
     },
@@ -132,6 +138,19 @@ impl IssueEvent {
         }
     }
 
+    pub fn priority_changed(
+        old_priority: Priority,
+        new_priority: Priority,
+        author: Identity,
+    ) -> Self {
+        IssueEvent::PriorityChanged {
+            old_priority,
+            new_priority,
+            author,
+            timestamp: Utc::now(),
+        }
+    }
+
     pub fn timestamp(&self) -> DateTime<Utc> {
         match self {
             IssueEvent::Created { timestamp, .. } => *timestamp,
@@ -142,6 +161,7 @@ impl IssueEvent {
             IssueEvent::TitleChanged { timestamp, .. } => *timestamp,
             IssueEvent::AssigneeChanged { timestamp, .. } => *timestamp,
             IssueEvent::DescriptionChanged { timestamp, .. } => *timestamp,
+            IssueEvent::PriorityChanged { timestamp, .. } => *timestamp,
         }
     }
 
@@ -155,6 +175,7 @@ impl IssueEvent {
             IssueEvent::TitleChanged { author, .. } => author,
             IssueEvent::AssigneeChanged { author, .. } => author,
             IssueEvent::DescriptionChanged { author, .. } => author,
+            IssueEvent::PriorityChanged { author, .. } => author,
         }
     }
 }

@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-use crate::common::{Comment, Identity, IssueEvent};
+use crate::common::{Comment, Identity, IssueEvent, Priority};
 
 pub type IssueId = u64;
 pub type CommentId = String;
@@ -43,6 +43,7 @@ pub struct Issue {
     pub title: String,
     pub description: String,
     pub status: IssueStatus,
+    pub priority: Priority,
     pub labels: Vec<String>,
     pub comments: Vec<Comment>,
     pub created_at: DateTime<Utc>,
@@ -59,6 +60,7 @@ impl Issue {
             title,
             description,
             status: IssueStatus::Todo,
+            priority: Priority::default(),
             labels: Vec::new(),
             comments: Vec::new(),
             created_at: now,
@@ -117,6 +119,13 @@ impl Issue {
             self.updated_at = Utc::now();
         }
     }
+
+    pub fn change_priority(&mut self, new_priority: Priority) {
+        if self.priority != new_priority {
+            self.priority = new_priority;
+            self.updated_at = Utc::now();
+        }
+    }
 }
 
 impl Issue {
@@ -145,6 +154,7 @@ impl Issue {
             title: created_event.0,
             description: created_event.1,
             status: IssueStatus::Todo,
+            priority: Priority::default(),
             labels: Vec::new(),
             comments: Vec::new(),
             created_at: created_event.3,
@@ -222,6 +232,14 @@ impl Issue {
                 ..
             } => {
                 self.description = new_description.clone();
+                self.updated_at = *timestamp;
+            }
+            IssueEvent::PriorityChanged {
+                new_priority,
+                timestamp,
+                ..
+            } => {
+                self.priority = *new_priority;
                 self.updated_at = *timestamp;
             }
         }

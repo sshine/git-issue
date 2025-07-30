@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::fs;
 use std::io::Write;
 
-use crate::common::{Identity, IssueId, IssueStatus, SystemEnvProvider};
+use crate::common::{Identity, IssueId, IssueStatus, Priority, SystemEnvProvider};
 use crate::storage::IssueStore;
 
 use super::get_author_identity;
@@ -14,6 +14,7 @@ use super::get_author_identity;
 struct EditableIssue {
     title: String,
     status: String,
+    priority: String,
     labels: Vec<String>,
     assignee: Option<String>,
     description: String,
@@ -59,6 +60,10 @@ pub struct EditArgs {
     /// Author email (defaults to git config)
     #[arg(short = 'e', long)]
     pub author_email: Option<String>,
+
+    /// Set priority directly (for programmatic access)
+    #[arg(short = 'p', long)]
+    pub priority: Option<Priority>,
 }
 
 pub fn handle_edit(repo_path: std::path::PathBuf, args: EditArgs) -> Result<()> {
@@ -95,6 +100,7 @@ fn apply_cli_edits(
     let mut editable = EditableIssue {
         title: current_issue.title.clone(),
         status: current_issue.status.to_string(),
+        priority: current_issue.priority.to_string(),
         labels: current_issue.labels.clone(),
         assignee: current_issue.assignee.as_ref().map(|a| a.email.clone()),
         description: current_issue.description.clone(),
@@ -112,6 +118,9 @@ fn apply_cli_edits(
     }
     if let Some(ref assignee) = args.assignee {
         editable.assignee = Some(assignee.clone());
+    }
+    if let Some(priority) = args.priority {
+        editable.priority = priority.to_string();
     }
 
     // Handle labels
@@ -166,6 +175,7 @@ fn create_template(issue: &crate::common::Issue, default_assignee_email: &str) -
 
 title: "{}"
 status: {}  # Options: todo, in-progress, done
+priority: {}  # Options: none, urgent, high, medium, low
 labels:
 {}
 assignee: {}  # Optional: email address or null
@@ -173,6 +183,7 @@ description: |
 {}"#,
         issue.title,
         issue.status,
+        issue.priority,
         if issue.labels.is_empty() {
             "  []".to_string()
         } else {
@@ -205,6 +216,12 @@ fn validate_editable_issue(editable: &EditableIssue) -> Result<()> {
 
     // Status must be valid
     editable.status.parse::<IssueStatus>()?;
+
+    // Priority must be valid
+    editable
+        .priority
+        .parse::<Priority>()
+        .map_err(|e| anyhow::anyhow!("Invalid priority: {}", e))?;
 
     // Labels must be trimmed and contain no internal spaces
     for label in &editable.labels {
@@ -268,6 +285,19 @@ fn apply_changes(
     if original.status != new_status {
         store.update_issue_status(issue_id, new_status, author.clone())?;
         changes.push(format!("Status: {} → {}", original.status, new_status));
+    }
+
+    // Check priority change
+    let new_priority = edited
+        .priority
+        .parse::<Priority>()
+        .map_err(|e| anyhow::anyhow!("Invalid priority: {}", e))?;
+    if original.priority != new_priority {
+        store.update_priority(issue_id, new_priority, author.clone())?;
+        changes.push(format!(
+            "Priority: {} → {}",
+            original.priority, new_priority
+        ));
     }
 
     // Check assignee change
@@ -508,6 +538,32 @@ mod tests {
         }
     }
 
+    /// Assert that a PriorityChanged event exists with the specified values
+    fn assert_priority_changed_event(
+        events: &[IssueEvent],
+        old_priority: Priority,
+        new_priority: Priority,
+        author: &Identity,
+    ) {
+        let event =
+            find_last_event_of_type(events, |e| matches!(e, IssueEvent::PriorityChanged { .. }))
+                .expect("Should have PriorityChanged event");
+
+        if let IssueEvent::PriorityChanged {
+            old_priority: old,
+            new_priority: new,
+            author: auth,
+            ..
+        } = event
+        {
+            assert_eq!(*old, old_priority, "Old priority should match");
+            assert_eq!(*new, new_priority, "New priority should match");
+            assert_eq!(auth, author, "Author should match");
+        } else {
+            panic!("Expected PriorityChanged event");
+        }
+    }
+
     /// Count events of a specific type
     fn count_events<F>(events: &[IssueEvent], predicate: F) -> usize
     where
@@ -550,6 +606,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -583,6 +640,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -625,6 +683,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -661,6 +720,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -694,6 +754,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -732,6 +793,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -785,6 +847,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -814,6 +877,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -852,6 +916,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -902,6 +967,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -942,6 +1008,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -969,6 +1036,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path, args);
@@ -980,6 +1048,7 @@ mod tests {
         let editable = EditableIssue {
             title: "".to_string(),
             status: "todo".to_string(),
+            priority: "none".to_string(),
             labels: Vec::new(),
             assignee: None,
             description: "Description".to_string(),
@@ -1000,6 +1069,7 @@ mod tests {
         let editable = EditableIssue {
             title: "Valid Title".to_string(),
             status: "todo".to_string(),
+            priority: "none".to_string(),
             labels: vec!["label with spaces".to_string()],
             assignee: None,
             description: "Description".to_string(),
@@ -1015,6 +1085,7 @@ mod tests {
         let editable = EditableIssue {
             title: "Valid Title".to_string(),
             status: "invalid-status".to_string(),
+            priority: "none".to_string(),
             labels: Vec::new(),
             assignee: None,
             description: "Description".to_string(),
@@ -1030,6 +1101,7 @@ mod tests {
         let editable = EditableIssue {
             title: "Valid Title".to_string(),
             status: "todo".to_string(),
+            priority: "none".to_string(),
             labels: Vec::new(),
             assignee: Some("not-an-email".to_string()),
             description: "Description".to_string(),
@@ -1050,6 +1122,7 @@ mod tests {
         let editable = EditableIssue {
             title: "Valid Title".to_string(),
             status: "in-progress".to_string(),
+            priority: "high".to_string(),
             labels: vec!["bug".to_string(), "urgent".to_string()],
             assignee: Some("user@example.com".to_string()),
             description: "Valid description".to_string(),
@@ -1089,6 +1162,7 @@ mod tests {
             no_editor: true,
             author_name: Some(author.name.clone()),
             author_email: Some(author.email.clone()),
+            priority: None,
         };
 
         let result = handle_edit(repo_path.clone(), args);
@@ -1166,5 +1240,95 @@ mod tests {
             assignee_changed_count, 2,
             "Should have 2 AssigneeChanged events"
         ); // initial + edit
+    }
+
+    #[test]
+    fn test_edit_priority_change() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+        let author = create_test_identity();
+
+        let args = EditArgs {
+            id: issue_id,
+            title: None,
+            description: None,
+            status: None,
+            add_label: Vec::new(),
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            author_name: Some(author.name.clone()),
+            author_email: Some(author.email.clone()),
+            priority: Some(Priority::High),
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(result.is_ok(), "Edit priority should succeed");
+
+        // Verify the change was applied
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let issue = store.get_issue(issue_id).expect("Should get issue");
+        assert_eq!(issue.priority, Priority::High);
+
+        // Verify the correct event was created
+        let events = get_issue_events(&store, issue_id);
+        assert_eq!(
+            events.len(),
+            2,
+            "Should have Created + PriorityChanged events"
+        );
+        assert_priority_changed_event(&events, Priority::None, Priority::High, &author);
+    }
+
+    #[test]
+    fn test_edit_priority_no_change() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+        let author = create_test_identity();
+
+        let args = EditArgs {
+            id: issue_id,
+            title: None,
+            description: None,
+            status: None,
+            add_label: Vec::new(),
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            author_name: Some(author.name.clone()),
+            author_email: Some(author.email.clone()),
+            priority: Some(Priority::None), // Same as default
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(result.is_ok(), "Edit priority should succeed (no-op)");
+
+        // Verify no change detection works
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let issue = store.get_issue(issue_id).expect("Should get issue");
+        assert_eq!(issue.priority, Priority::None);
+
+        // Verify no additional events were created (only the original Created event)
+        let events = get_issue_events(&store, issue_id);
+        assert_eq!(
+            events.len(),
+            1,
+            "Should only have the original Created event"
+        );
+        assert!(matches!(events[0], IssueEvent::Created { .. }));
+    }
+
+    #[test]
+    fn test_validate_editable_issue_invalid_priority() {
+        let editable = EditableIssue {
+            title: "Valid Title".to_string(),
+            status: "todo".to_string(),
+            priority: "invalid-priority".to_string(),
+            labels: Vec::new(),
+            assignee: None,
+            description: "Description".to_string(),
+        };
+
+        let result = validate_editable_issue(&editable);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Invalid priority"));
     }
 }

@@ -1,4 +1,4 @@
-use crate::common::{Issue, IssueStatus};
+use crate::common::{Issue, IssueStatus, Priority};
 use chrono::Utc;
 use console::{Color, style};
 use std::time::Duration;
@@ -70,11 +70,36 @@ pub fn format_issue_status(status: &IssueStatus) -> console::StyledObject<&str> 
     }
 }
 
+pub fn format_priority(priority: &Priority) -> console::StyledObject<String> {
+    let priority_str = match priority {
+        Priority::None => "—".to_string(), // Em dash for no priority
+        Priority::Urgent => "URGENT".to_string(),
+        Priority::High => "HIGH".to_string(),
+        Priority::Medium => "MED".to_string(),
+        Priority::Low => "LOW".to_string(),
+    };
+
+    match priority {
+        Priority::None => style(priority_str).dim(),
+        Priority::Urgent => style(priority_str).fg(Color::Red).bold(),
+        Priority::High => style(priority_str).fg(Color::Red),
+        Priority::Medium => style(priority_str).fg(Color::Yellow),
+        Priority::Low => style(priority_str).fg(Color::Green),
+    }
+}
+
 pub fn format_issue_compact(issue: &Issue) -> String {
+    let priority_part = if issue.priority == Priority::None {
+        String::new()
+    } else {
+        format!(" [{}]", format_priority(&issue.priority))
+    };
+
     format!(
-        "#{} [{}] {}",
+        "#{} [{}]{} {}",
         style(issue.id).bold(),
         format_issue_status(&issue.status),
+        priority_part,
         issue.title
     )
 }
@@ -89,6 +114,7 @@ pub fn format_issue_detailed(issue: &Issue) -> String {
     ));
 
     output.push_str(&format!("Status: {}\n", format_issue_status(&issue.status)));
+    output.push_str(&format!("Priority: {}\n", format_priority(&issue.priority)));
 
     let created_time_since = Utc::now() - issue.created_at;
     output.push_str(&format!(
@@ -182,7 +208,7 @@ pub fn info_message(message: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::common::{Identity, Issue, IssueStatus};
+    use crate::common::{Identity, Issue, IssueStatus, Priority};
     use chrono::Utc;
 
     fn create_test_issue() -> Issue {
@@ -192,6 +218,7 @@ mod tests {
             title: "Test Issue Title".to_string(),
             description: "Single paragraph description".to_string(),
             status: IssueStatus::Todo,
+            priority: Priority::None,
             created_by: author.clone(),
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -279,5 +306,94 @@ mod tests {
 
         // Should not contain the "more words" hint
         assert!(!formatted.contains("more words"));
+    }
+
+    #[test]
+    fn test_format_priority_none() {
+        let priority = Priority::None;
+        let formatted = format_priority(&priority);
+
+        // Should display em dash for no priority
+        assert_eq!(formatted.to_string(), "—");
+    }
+
+    #[test]
+    fn test_format_priority_urgent() {
+        let priority = Priority::Urgent;
+        let formatted = format_priority(&priority);
+
+        // Should display URGENT
+        assert_eq!(formatted.to_string(), "URGENT");
+    }
+
+    #[test]
+    fn test_format_issue_compact_with_priority() {
+        let mut issue = create_test_issue();
+        issue.priority = Priority::High;
+        let formatted = format_issue_compact(&issue);
+
+        // Should contain the ID, status, priority, and title
+        assert!(formatted.contains("#42"));
+        assert!(formatted.contains("[TODO]"));
+        assert!(formatted.contains("[HIGH]"));
+        assert!(formatted.contains("Test Issue Title"));
+
+        // Status should come before priority, priority before title
+        let status_pos = formatted.find("[TODO]").unwrap();
+        let priority_pos = formatted.find("[HIGH]").unwrap();
+        let title_pos = formatted.find("Test Issue Title").unwrap();
+        assert!(status_pos < priority_pos);
+        assert!(priority_pos < title_pos);
+    }
+
+    #[test]
+    fn test_format_issue_compact_no_priority() {
+        let issue = create_test_issue(); // Priority::None by default
+        let formatted = format_issue_compact(&issue);
+
+        // Should contain the ID, status, and title
+        assert!(formatted.contains("#42"));
+        assert!(formatted.contains("[TODO]"));
+        assert!(formatted.contains("Test Issue Title"));
+
+        // Should not contain priority brackets when priority is None
+        assert!(!formatted.contains("[—]"));
+        assert!(!formatted.contains("[NONE]"));
+
+        // Should not have double spaces between status and title
+        assert!(!formatted.contains("]  "));
+    }
+
+    #[test]
+    fn test_format_issue_detailed_with_priority() {
+        let mut issue = create_test_issue();
+        issue.priority = Priority::Medium;
+        let formatted = format_issue_detailed(&issue);
+
+        // Should contain priority information
+        assert!(formatted.contains("Priority: MED"));
+        assert!(formatted.contains("Status: TODO"));
+    }
+
+    #[test]
+    fn test_all_priority_levels_format() {
+        let priorities = [
+            (Priority::None, "—"),
+            (Priority::Urgent, "URGENT"),
+            (Priority::High, "HIGH"),
+            (Priority::Medium, "MED"),
+            (Priority::Low, "LOW"),
+        ];
+
+        for (priority, expected) in priorities {
+            let formatted = format_priority(&priority);
+            assert_eq!(
+                formatted.to_string(),
+                expected,
+                "Priority {:?} should format as {}",
+                priority,
+                expected
+            );
+        }
     }
 }
