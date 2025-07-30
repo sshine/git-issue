@@ -107,15 +107,15 @@ pub struct EditArgs {
     pub id: IssueId,
 
     /// Set title directly (for programmatic access)
-    #[arg(long)]
+    #[arg(short = 't', long)]
     pub title: Option<String>,
 
     /// Set description directly (for programmatic access)
-    #[arg(long)]
+    #[arg(short = 'd', long)]
     pub description: Option<String>,
 
     /// Set status directly (for programmatic access)
-    #[arg(long)]
+    #[arg(short = 's', long)]
     pub status: Option<String>,
 
     /// Add a label (repeatable, for programmatic access)
@@ -127,7 +127,7 @@ pub struct EditArgs {
     pub remove_label: Vec<String>,
 
     /// Set assignee directly (for programmatic access)
-    #[arg(long)]
+    #[arg(short = 'a', long)]
     pub assignee: Option<String>,
 
     /// Skip interactive editor, use only CLI arguments
@@ -135,11 +135,11 @@ pub struct EditArgs {
     pub no_editor: bool,
 
     /// Author name (defaults to git config)
-    #[arg(long)]
+    #[arg(short = 'n', long)]
     pub author_name: Option<String>,
 
     /// Author email (defaults to git config)
-    #[arg(long)]
+    #[arg(short = 'e', long)]
     pub author_email: Option<String>,
 }
 
