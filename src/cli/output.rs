@@ -105,6 +105,14 @@ pub fn format_issue_compact(issue: &Issue) -> String {
 }
 
 pub fn format_issue_detailed(issue: &Issue) -> String {
+    format_issue_internal(issue, false)
+}
+
+pub fn format_issue_list_long(issue: &Issue) -> String {
+    format_issue_internal(issue, true)
+}
+
+fn format_issue_internal(issue: &Issue, truncate_description: bool) -> String {
     let mut output = String::new();
 
     output.push_str(&format!(
@@ -154,18 +162,22 @@ pub fn format_issue_detailed(issue: &Issue) -> String {
 
     if !issue.description.is_empty() {
         output.push_str("\nDescription:\n");
-        let (truncated_desc, remaining_words) = truncate_to_first_paragraph(&issue.description);
-        output.push_str(&format!("{}\n", truncated_desc));
+        if truncate_description {
+            let (truncated_desc, remaining_words) = truncate_to_first_paragraph(&issue.description);
+            output.push_str(&format!("{}\n", truncated_desc));
 
-        if let Some(word_count) = remaining_words {
-            output.push_str(&format!(
-                "{}\n",
-                style(format!(
-                    "[{} more words; run `git issue show #{}`]",
-                    word_count, issue.id
-                ))
-                .dim()
-            ));
+            if let Some(word_count) = remaining_words {
+                output.push_str(&format!(
+                    "{}\n",
+                    style(format!(
+                        "[{} more words; run `git issue show #{}`]",
+                        word_count, issue.id
+                    ))
+                    .dim()
+                ));
+            }
+        } else {
+            output.push_str(&format!("{}\n", issue.description));
         }
     }
 
@@ -284,6 +296,23 @@ mod tests {
             "First paragraph here.\n\nSecond paragraph with additional information.".to_string();
 
         let formatted = format_issue_detailed(&issue);
+
+        // Should contain the full description in detailed view
+        assert!(formatted.contains("First paragraph here."));
+        assert!(formatted.contains("Second paragraph with additional information."));
+
+        // Should NOT contain the "more words" hint in detailed view
+        assert!(!formatted.contains("more words"));
+        assert!(!formatted.contains("git issue show #42"));
+    }
+
+    #[test]
+    fn test_format_issue_list_long_with_multi_paragraph() {
+        let mut issue = create_test_issue();
+        issue.description =
+            "First paragraph here.\n\nSecond paragraph with additional information.".to_string();
+
+        let formatted = format_issue_list_long(&issue);
 
         // Should contain the first paragraph
         assert!(formatted.contains("First paragraph here."));

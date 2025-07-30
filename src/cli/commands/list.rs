@@ -1,7 +1,7 @@
 use anyhow::Result;
 use clap::Args;
 
-use crate::cli::output::{format_issue_compact, format_issue_detailed};
+use crate::cli::output::{format_issue_compact, format_issue_list_long};
 use crate::common::IssueStatus;
 use crate::storage::IssueStore;
 
@@ -65,7 +65,7 @@ pub fn handle_list(repo_path: std::path::PathBuf, args: ListArgs) -> Result<()> 
         }
     } else {
         for issue in filtered_issues {
-            print!("{}", format_issue_detailed(&issue));
+            print!("{}", format_issue_list_long(&issue));
         }
     }
 
