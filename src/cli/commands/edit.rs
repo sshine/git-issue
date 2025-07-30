@@ -53,13 +53,9 @@ pub struct EditArgs {
     #[arg(long)]
     pub no_editor: bool,
 
-    /// Author name (defaults to git config)
-    #[arg(short = 'n', long)]
-    pub author_name: Option<String>,
-
-    /// Author email (defaults to git config)
-    #[arg(short = 'e', long)]
-    pub author_email: Option<String>,
+    /// Set creator directly (for programmatic access)
+    #[arg(short = 'c', long)]
+    pub creator: Option<String>,
 
     /// Set priority directly (for programmatic access)
     #[arg(short = 'p', long)]
@@ -68,12 +64,7 @@ pub struct EditArgs {
 
 pub fn handle_edit(repo_path: std::path::PathBuf, args: EditArgs) -> Result<()> {
     let mut store = IssueStore::open(&repo_path)?;
-    let author = get_author_identity(
-        args.author_name.clone(),
-        args.author_email.clone(),
-        &store,
-        SystemEnvProvider,
-    )?;
+    let author = get_author_identity(None, None, &store, SystemEnvProvider)?;
 
     // Get the current issue
     let current_issue = store.get_issue(args.id)?;
@@ -87,7 +78,14 @@ pub fn handle_edit(repo_path: std::path::PathBuf, args: EditArgs) -> Result<()> 
     };
 
     // Apply changes with change detection
-    apply_changes(&mut store, args.id, &current_issue, &editable_issue, author)?;
+    apply_changes(
+        &mut store,
+        args.id,
+        &current_issue,
+        &editable_issue,
+        author,
+        &args,
+    )?;
 
     Ok(())
 }
@@ -256,6 +254,7 @@ fn apply_changes(
     original: &crate::common::Issue,
     edited: &EditableIssue,
     author: Identity,
+    args: &EditArgs,
 ) -> Result<()> {
     let mut changes = Vec::new();
 
@@ -300,9 +299,21 @@ fn apply_changes(
         ));
     }
 
+    // Check creator change
+    if let Some(ref creator_email) = args.creator {
+        let new_creator = Identity::new("", creator_email);
+        if original.created_by != new_creator {
+            store.update_created_by(issue_id, new_creator, author.clone())?;
+            changes.push(format!(
+                "Creator: {} → {}",
+                original.created_by.email, creator_email
+            ));
+        }
+    }
+
     // Check assignee change
     let new_assignee = edited.assignee.as_ref().map(|email| {
-        Identity::new("".to_string(), email.clone()) // We don't have name, just email
+        Identity::new("", email) // We don't have name, just email
     });
     if original.assignee != new_assignee {
         store.update_assignee(issue_id, new_assignee, author.clone())?;
@@ -604,8 +615,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -638,8 +648,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -681,8 +690,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -718,8 +726,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -741,7 +748,6 @@ mod tests {
     #[test]
     fn test_edit_add_multiple_labels() {
         let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
-        let author = create_test_identity();
 
         let args = EditArgs {
             id: issue_id,
@@ -752,8 +758,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: Some(create_test_identity().to_string()),
             priority: None,
         };
 
@@ -791,8 +796,7 @@ mod tests {
             remove_label: vec!["bug".to_string()],
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -845,8 +849,7 @@ mod tests {
             remove_label: vec!["old-label".to_string()],
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -875,8 +878,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: Some("assignee@example.com".to_string()),
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -896,7 +898,7 @@ mod tests {
             2,
             "Should have Created + AssigneeChanged events"
         );
-        let new_assignee = Identity::new("".to_string(), "assignee@example.com".to_string());
+        let new_assignee = Identity::new("", "assignee@example.com");
         assert_assignee_changed_event(&events, None, Some(&new_assignee), &author);
     }
 
@@ -914,8 +916,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: Some("developer@example.com".to_string()),
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -947,14 +948,13 @@ mod tests {
         assert_status_changed_event(&events, IssueStatus::Todo, IssueStatus::Done, &author);
         assert_label_added_event(&events, "enhancement", &author);
 
-        let new_assignee = Identity::new("".to_string(), "developer@example.com".to_string());
+        let new_assignee = Identity::new("", "developer@example.com");
         assert_assignee_changed_event(&events, None, Some(&new_assignee), &author);
     }
 
     #[test]
     fn test_edit_no_changes() {
         let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
-        let author = create_test_identity();
 
         let args = EditArgs {
             id: issue_id,
@@ -965,8 +965,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: Some(create_test_identity().to_string()),
             priority: None,
         };
 
@@ -995,7 +994,6 @@ mod tests {
     #[test]
     fn test_edit_same_title() {
         let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
-        let author = create_test_identity();
 
         let args = EditArgs {
             id: issue_id,
@@ -1006,8 +1004,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: Some(create_test_identity().to_string()),
             priority: None,
         };
 
@@ -1023,7 +1020,6 @@ mod tests {
     #[test]
     fn test_edit_nonexistent_issue() {
         let (_temp_dir, repo_path, _issue_id) = setup_temp_edit_repo();
-        let author = create_test_identity();
 
         let args = EditArgs {
             id: 9999, // Non-existent issue
@@ -1034,8 +1030,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: Some(create_test_identity().to_string()),
             priority: None,
         };
 
@@ -1145,7 +1140,7 @@ mod tests {
         store
             .update_assignee(
                 issue_id,
-                Some(Identity::new("".to_string(), "old@example.com".to_string())),
+                Some(Identity::new("", "old@example.com")),
                 author.clone(),
             )
             .expect("Should assign");
@@ -1160,8 +1155,7 @@ mod tests {
             remove_label: vec!["old-label".to_string()],
             assignee: Some("new@example.com".to_string()),
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: None,
         };
 
@@ -1207,8 +1201,8 @@ mod tests {
         assert_label_added_event(&events, "tested", &author);
         assert_label_removed_event(&events, "old-label", &author);
 
-        let old_assignee = Identity::new("".to_string(), "old@example.com".to_string());
-        let new_assignee = Identity::new("".to_string(), "new@example.com".to_string());
+        let old_assignee = Identity::new("", "old@example.com");
+        let new_assignee = Identity::new("", "new@example.com");
         assert_assignee_changed_event(&events, Some(&old_assignee), Some(&new_assignee), &author);
 
         // Use counting helper to verify event type counts
@@ -1256,8 +1250,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: None,
             priority: Some(Priority::High),
         };
 
@@ -1282,7 +1275,6 @@ mod tests {
     #[test]
     fn test_edit_priority_no_change() {
         let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
-        let author = create_test_identity();
 
         let args = EditArgs {
             id: issue_id,
@@ -1293,8 +1285,7 @@ mod tests {
             remove_label: Vec::new(),
             assignee: None,
             no_editor: true,
-            author_name: Some(author.name.clone()),
-            author_email: Some(author.email.clone()),
+            creator: Some(create_test_identity().to_string()),
             priority: Some(Priority::None), // Same as default
         };
 
@@ -1330,5 +1321,236 @@ mod tests {
         let result = validate_editable_issue(&editable);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid priority"));
+    }
+
+    #[test]
+    fn test_edit_multiple_changes_with_custom_author() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+
+        let args = EditArgs {
+            id: issue_id,
+            title: Some("Multi Change Title".to_string()),
+            description: Some("Multi change description".to_string()),
+            status: Some("in-progress".to_string()),
+            add_label: vec!["test-label".to_string()],
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            creator: Some(create_test_identity().to_string()),
+            priority: Some(Priority::Medium),
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(
+            result.is_ok(),
+            "Edit multiple changes with custom author should succeed"
+        );
+
+        // Check all events were created with the custom author
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let events = get_issue_events(&store, issue_id);
+
+        // Should have Created + TitleChanged + DescriptionChanged + StatusChanged + LabelAdded + PriorityChanged
+        assert_eq!(events.len(), 6, "Should have all expected events");
+
+        // Check each change event has the correct custom author
+        let title_event =
+            find_last_event_of_type(&events, |e| matches!(e, IssueEvent::TitleChanged { .. }))
+                .expect("Should have TitleChanged event");
+
+        let desc_event = find_last_event_of_type(&events, |e| {
+            matches!(e, IssueEvent::DescriptionChanged { .. })
+        })
+        .expect("Should have DescriptionChanged event");
+
+        let status_event =
+            find_last_event_of_type(&events, |e| matches!(e, IssueEvent::StatusChanged { .. }))
+                .expect("Should have StatusChanged event");
+
+        let label_event =
+            find_last_event_of_type(&events, |e| matches!(e, IssueEvent::LabelAdded { .. }))
+                .expect("Should have LabelAdded event");
+
+        let priority_event =
+            find_last_event_of_type(&events, |e| matches!(e, IssueEvent::PriorityChanged { .. }))
+                .expect("Should have PriorityChanged event");
+
+        // Verify all events have the default author (since no custom author was provided)
+        for (event_name, event) in [
+            ("TitleChanged", title_event),
+            ("DescriptionChanged", desc_event),
+            ("StatusChanged", status_event),
+            ("LabelAdded", label_event),
+            ("PriorityChanged", priority_event),
+        ] {
+            let author = match event {
+                IssueEvent::TitleChanged { author, .. } => author,
+                IssueEvent::DescriptionChanged { author, .. } => author,
+                IssueEvent::StatusChanged { author, .. } => author,
+                IssueEvent::LabelAdded { author, .. } => author,
+                IssueEvent::PriorityChanged { author, .. } => author,
+                _ => panic!("Unexpected event type"),
+            };
+
+            assert!(
+                !author.name.is_empty(),
+                "{} event should have author name",
+                event_name
+            );
+            assert!(
+                !author.email.is_empty(),
+                "{} event should have author email",
+                event_name
+            );
+        }
+    }
+
+    /// Assert that a CreatedByChanged event exists with the specified values
+    fn assert_created_by_changed_event(
+        events: &[IssueEvent],
+        old_creator: &Identity,
+        new_creator: &Identity,
+        author: &Identity,
+    ) {
+        let event =
+            find_last_event_of_type(events, |e| matches!(e, IssueEvent::CreatedByChanged { .. }))
+                .expect("Should have CreatedByChanged event");
+
+        if let IssueEvent::CreatedByChanged {
+            old_created_by: old,
+            new_created_by: new,
+            author: auth,
+            ..
+        } = event
+        {
+            assert_eq!(old, old_creator, "Old creator should match");
+            assert_eq!(new, new_creator, "New creator should match");
+            assert_eq!(auth, author, "Author should match");
+        } else {
+            panic!("Expected CreatedByChanged event");
+        }
+    }
+
+    #[test]
+    fn test_edit_creator_change() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+        let author = create_test_identity();
+        let new_creator_email = "new-creator@example.com";
+
+        let args = EditArgs {
+            id: issue_id,
+            title: None,
+            description: None,
+            status: None,
+            add_label: Vec::new(),
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            creator: Some(new_creator_email.to_string()),
+            priority: None,
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(result.is_ok(), "Edit creator should succeed");
+
+        // Verify the change was applied
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let issue = store.get_issue(issue_id).expect("Should get issue");
+        assert_eq!(issue.created_by.email, new_creator_email);
+
+        // Verify the correct event was created
+        let events = get_issue_events(&store, issue_id);
+        assert_eq!(
+            events.len(),
+            2,
+            "Should have Created + CreatedByChanged events"
+        );
+
+        let old_creator = author.clone();
+        let new_creator = Identity::new("", new_creator_email);
+        assert_created_by_changed_event(&events, &old_creator, &new_creator, &author);
+    }
+
+    #[test]
+    fn test_edit_creator_no_change() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+        let author = create_test_identity();
+
+        let args = EditArgs {
+            id: issue_id,
+            title: None,
+            description: None,
+            status: None,
+            add_label: Vec::new(),
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            creator: Some(author.email.clone()), // Same as current
+            priority: None,
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(result.is_ok(), "Edit creator should succeed (no-op)");
+
+        // Verify no change detection works
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let issue = store.get_issue(issue_id).expect("Should get issue");
+        assert_eq!(issue.created_by.email, author.email);
+
+        // Verify no additional events were created (only the original Created event)
+        let events = get_issue_events(&store, issue_id);
+        assert_eq!(
+            events.len(),
+            1,
+            "Should only have the original Created event"
+        );
+        assert!(matches!(events[0], IssueEvent::Created { .. }));
+    }
+
+    #[test]
+    fn test_edit_creator_with_other_changes() {
+        let (_temp_dir, repo_path, issue_id) = setup_temp_edit_repo();
+        let author = create_test_identity();
+        let new_creator_email = "another-creator@example.com";
+
+        let args = EditArgs {
+            id: issue_id,
+            title: Some("Updated Title".to_string()),
+            description: None,
+            status: Some("in-progress".to_string()),
+            add_label: Vec::new(),
+            remove_label: Vec::new(),
+            assignee: None,
+            no_editor: true,
+            creator: Some(new_creator_email.to_string()),
+            priority: Some(Priority::High),
+        };
+
+        let result = handle_edit(repo_path.clone(), args);
+        assert!(
+            result.is_ok(),
+            "Edit creator with other changes should succeed"
+        );
+
+        // Verify all changes were applied
+        let store = IssueStore::open(&repo_path).expect("Should open store");
+        let issue = store.get_issue(issue_id).expect("Should get issue");
+        assert_eq!(issue.title, "Updated Title");
+        assert_eq!(issue.status, IssueStatus::InProgress);
+        assert_eq!(issue.priority, Priority::High);
+        assert_eq!(issue.created_by.email, new_creator_email);
+
+        // Verify all the correct events were created
+        let events = get_issue_events(&store, issue_id);
+        assert_eq!(events.len(), 5, "Should have Created + 4 change events");
+
+        // Verify each type of event was created
+        assert_title_changed_event(&events, "Original Title", "Updated Title", &author);
+        assert_status_changed_event(&events, IssueStatus::Todo, IssueStatus::InProgress, &author);
+        assert_priority_changed_event(&events, Priority::None, Priority::High, &author);
+
+        let old_creator = author.clone();
+        let new_creator = Identity::new("", new_creator_email);
+        assert_created_by_changed_event(&events, &old_creator, &new_creator, &author);
     }
 }

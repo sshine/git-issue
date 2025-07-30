@@ -19,11 +19,13 @@ pub enum Priority {
 
 impl Priority {
     /// Get the numeric value of the priority
+    #[allow(unused)]
     pub fn as_u8(self) -> u8 {
         self as u8
     }
 
     /// Create priority from numeric value
+    #[allow(unused)]
     pub fn from_u8(value: u8) -> Option<Self> {
         match value {
             0 => Some(Priority::None),
@@ -36,6 +38,7 @@ impl Priority {
     }
 
     /// Get all valid priority values
+    #[allow(unused)]
     pub fn all() -> &'static [Priority] {
         &[
             Priority::None,

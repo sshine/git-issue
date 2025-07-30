@@ -90,14 +90,16 @@ pub fn handle_label(repo_path: std::path::PathBuf, args: LabelArgs) -> Result<()
 
     // Get the current issue to check existing labels
     let current_issue = store.get_issue(args.id)?;
-    let current_labels: std::collections::HashSet<String> = 
+    let current_labels: std::collections::HashSet<String> =
         current_issue.labels.iter().cloned().collect();
 
     // Parse the label operations
     if args.labels.is_empty() {
-        return Err(anyhow::anyhow!("No label operations specified. Use +label to add or -label to remove"));
+        return Err(anyhow::anyhow!(
+            "No label operations specified. Use +label to add or -label to remove"
+        ));
     }
-    
+
     let (add_labels, remove_labels) = parse_label_operations(&args.labels)?;
 
     let mut warnings = Vec::new();
@@ -107,7 +109,10 @@ pub fn handle_label(repo_path: std::path::PathBuf, args: LabelArgs) -> Result<()
     // Process additions
     for label in add_labels {
         if current_labels.contains(&label) {
-            warnings.push(format!("Label '{}' already exists on issue #{}", label, args.id));
+            warnings.push(format!(
+                "Label '{}' already exists on issue #{}",
+                label, args.id
+            ));
         } else {
             store.add_label(args.id, label.clone(), author.clone())?;
             successful_adds.push(label);
@@ -127,18 +132,22 @@ pub fn handle_label(repo_path: std::path::PathBuf, args: LabelArgs) -> Result<()
     // Display results
     if !successful_adds.is_empty() || !successful_removes.is_empty() {
         let mut changes = Vec::new();
-        
+
         if !successful_adds.is_empty() {
             changes.push(format!("Added: {}", successful_adds.join(", ")));
         }
-        
+
         if !successful_removes.is_empty() {
             changes.push(format!("Removed: {}", successful_removes.join(", ")));
         }
 
         println!(
             "{}",
-            success_message(&format!("Updated labels for issue #{}: {}", args.id, changes.join("; ")))
+            success_message(&format!(
+                "Updated labels for issue #{}: {}",
+                args.id,
+                changes.join("; ")
+            ))
         );
     }
 
@@ -194,9 +203,9 @@ mod tests {
             "+feature".to_string(),
             "-old-label".to_string(),
         ];
-        
+
         let (add_labels, remove_labels) = parse_label_operations(&labels).unwrap();
-        
+
         assert_eq!(add_labels, vec!["bug", "feature"]);
         assert_eq!(remove_labels, vec!["old-label"]);
     }
@@ -204,9 +213,9 @@ mod tests {
     #[test]
     fn test_parse_label_operations_only_adds() {
         let labels = vec!["+bug".to_string(), "+feature".to_string()];
-        
+
         let (add_labels, remove_labels) = parse_label_operations(&labels).unwrap();
-        
+
         assert_eq!(add_labels, vec!["bug", "feature"]);
         assert!(remove_labels.is_empty());
     }
@@ -214,9 +223,9 @@ mod tests {
     #[test]
     fn test_parse_label_operations_only_removes() {
         let labels = vec!["-bug".to_string(), "-feature".to_string()];
-        
+
         let (add_labels, remove_labels) = parse_label_operations(&labels).unwrap();
-        
+
         assert!(add_labels.is_empty());
         assert_eq!(remove_labels, vec!["bug", "feature"]);
     }
@@ -224,7 +233,7 @@ mod tests {
     #[test]
     fn test_parse_label_operations_invalid_prefix() {
         let labels = vec!["bug".to_string()]; // Missing + or -
-        
+
         let result = parse_label_operations(&labels);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("must start with"));
@@ -233,7 +242,7 @@ mod tests {
     #[test]
     fn test_parse_label_operations_empty_label() {
         let labels = vec!["+".to_string()]; // Empty label after +
-        
+
         let result = parse_label_operations(&labels);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Empty label"));
@@ -346,7 +355,10 @@ mod tests {
         };
 
         let result = handle_label(repo_path.clone(), args);
-        assert!(result.is_ok(), "Handle label should succeed even with existing label");
+        assert!(
+            result.is_ok(),
+            "Handle label should succeed even with existing label"
+        );
 
         // Verify no duplicate was added (label count should remain the same)
         let store = IssueStore::open(&repo_path).expect("Should open store");
@@ -368,7 +380,10 @@ mod tests {
         };
 
         let result = handle_label(repo_path.clone(), args);
-        assert!(result.is_ok(), "Handle label should succeed even with nonexistent label");
+        assert!(
+            result.is_ok(),
+            "Handle label should succeed even with nonexistent label"
+        );
 
         // Verify original labels are unchanged
         let store = IssueStore::open(&repo_path).expect("Should open store");
@@ -391,6 +406,9 @@ mod tests {
         };
 
         let result = handle_label(repo_path, args);
-        assert!(result.is_err(), "Handle label should fail for non-existent issue");
+        assert!(
+            result.is_err(),
+            "Handle label should fail for non-existent issue"
+        );
     }
 }

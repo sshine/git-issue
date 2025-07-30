@@ -97,6 +97,7 @@ impl IssueStore {
     }
 
     /// Check if an issue exists
+    #[allow(unused)]
     pub fn issue_exists(&self, issue_id: IssueId) -> StorageResult<bool> {
         let ref_name = self.repo.issue_ref_name(issue_id);
         let ref_exists = self.repo.read_ref(&ref_name)?.is_some();
@@ -135,6 +136,9 @@ impl IssueStore {
     /// Add a comment to an issue
     ///
     /// Creates a new "CommentAdded" event with a sequential comment ID.
+    ///
+    /// FIXME(sshine): Resolve issue #3 to remove this #[allow(unused)].
+    #[allow(unused)]
     pub fn add_comment(
         &mut self,
         issue_id: IssueId,
@@ -307,6 +311,7 @@ impl IssueStore {
     }
 
     /// Get the repository path
+    #[allow(unused)]
     pub fn path(&self) -> &Path {
         self.repo.path()
     }
@@ -362,6 +367,34 @@ impl IssueStore {
 
         // Append the event to the issue chain
         self.append_event(issue_id, priority_event, Some(parent_commit))?;
+
+        Ok(())
+    }
+
+    /// Update an issue's creator
+    pub fn update_created_by(
+        &mut self,
+        issue_id: IssueId,
+        new_created_by: Identity,
+        author: Identity,
+    ) -> StorageResult<()> {
+        // Verify the issue exists and get current creator
+        let current_issue = self.get_issue(issue_id)?;
+
+        if current_issue.created_by == new_created_by {
+            // Creator unchanged, no-op
+            return Ok(());
+        }
+
+        // Create creator changed event
+        let creator_event =
+            IssueEvent::created_by_changed(current_issue.created_by, new_created_by, author);
+
+        // Get the current HEAD commit to use as parent
+        let parent_commit = self.get_issue_head_commit(issue_id)?;
+
+        // Append the event to the issue chain
+        self.append_event(issue_id, creator_event, Some(parent_commit))?;
 
         Ok(())
     }
@@ -470,6 +503,9 @@ impl IssueStore {
                 ..
             } => {
                 format!("PriorityChanged: {} → {}", old_priority, new_priority)
+            }
+            IssueEvent::CreatedByChanged { new_created_by, .. } => {
+                format!("CreatedByChanged: {}", new_created_by.email)
             }
         };
 

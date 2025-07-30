@@ -21,10 +21,11 @@ pub mod test_helpers {
 
     /// Creates a consistent test identity for use in tests
     pub fn create_test_identity() -> Identity {
-        Identity::new("Test User".to_string(), "test@example.com".to_string())
+        Identity::new("Test User", "test@example.com")
     }
 
     /// Verifies that a git object exists in the repository
+    #[allow(unused)]
     pub fn assert_git_object_exists(repo_path: &Path, oid: &gix::ObjectId) {
         let gix_repo = gix::open(repo_path).expect("Failed to open repository with gix");
         let _object = gix_repo
@@ -33,6 +34,7 @@ pub mod test_helpers {
     }
 
     /// Verifies that a git reference exists and points to the expected object
+    #[allow(unused)]
     pub fn assert_ref_exists(repo_path: &Path, ref_name: &str, expected_oid: &gix::ObjectId) {
         let gix_repo = gix::open(repo_path).expect("Failed to open repository with gix");
         let reference = gix_repo

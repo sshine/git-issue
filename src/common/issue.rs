@@ -53,8 +53,10 @@ pub struct Issue {
 }
 
 impl Issue {
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn new(id: IssueId, title: String, description: String, created_by: Identity) -> Self {
-        let now = Utc::now();
+        let created_at = Utc::now();
         Self {
             id,
             title,
@@ -63,13 +65,15 @@ impl Issue {
             priority: Priority::default(),
             labels: Vec::new(),
             comments: Vec::new(),
-            created_at: now,
-            updated_at: now,
+            created_at,
+            updated_at: created_at,
             created_by,
             assignee: None,
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn add_comment(&mut self, content: String, author: Identity) -> CommentId {
         let comment_id = format!("{}-{}", self.id, self.comments.len() + 1);
         let comment = Comment::new(comment_id.clone(), content, author);
@@ -78,6 +82,8 @@ impl Issue {
         comment_id
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn change_status(&mut self, new_status: IssueStatus) {
         if self.status != new_status {
             self.status = new_status;
@@ -85,6 +91,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn add_label(&mut self, label: String) {
         if !self.labels.contains(&label) {
             self.labels.push(label);
@@ -92,6 +100,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn remove_label(&mut self, label: &str) {
         if let Some(pos) = self.labels.iter().position(|l| l == label) {
             self.labels.remove(pos);
@@ -99,6 +109,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn change_title(&mut self, new_title: String) {
         if self.title != new_title {
             self.title = new_title;
@@ -106,6 +118,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn assign_to(&mut self, assignee: Option<Identity>) {
         if self.assignee != assignee {
             self.assignee = assignee;
@@ -113,6 +127,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn change_description(&mut self, new_description: String) {
         if self.description != new_description {
             self.description = new_description;
@@ -120,6 +136,8 @@ impl Issue {
         }
     }
 
+    // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
+    #[allow(unused)]
     pub fn change_priority(&mut self, new_priority: Priority) {
         if self.priority != new_priority {
             self.priority = new_priority;
@@ -242,6 +260,14 @@ impl Issue {
                 self.priority = *new_priority;
                 self.updated_at = *timestamp;
             }
+            IssueEvent::CreatedByChanged {
+                new_created_by,
+                timestamp,
+                ..
+            } => {
+                self.created_by = new_created_by.clone();
+                self.updated_at = *timestamp;
+            }
         }
         Ok(())
     }
@@ -252,7 +278,7 @@ mod tests {
     use super::*;
 
     fn test_identity() -> Identity {
-        Identity::new("Test User".to_string(), "test@example.com".to_string())
+        Identity::new("Test User", "test@example.com")
     }
 
     #[test]
@@ -337,7 +363,7 @@ mod tests {
         assert_eq!(issue.title, "New Title");
 
         // Test assignee
-        let assignee = Identity::new("Assignee".to_string(), "assignee@example.com".to_string());
+        let assignee = Identity::new("Assignee", "assignee@example.com");
         issue.assign_to(Some(assignee.clone()));
         assert_eq!(issue.assignee, Some(assignee));
     }

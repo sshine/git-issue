@@ -289,8 +289,8 @@ impl GitRepository {
 
         let parents = object.parents.into_iter().map(|p| p.to_string()).collect();
         let author = Identity::new(
-            object.author.name.to_string(),
-            object.author.email.to_string(),
+            &object.author.name.to_string(),
+            &object.author.email.to_string(),
         );
         let message = String::from_utf8_lossy(&object.message).to_string();
         // TODO: Parse the time from the git commit object properly
@@ -424,6 +424,7 @@ impl GitRepository {
     }
 
     /// Delete a reference
+    #[allow(unused)]
     pub fn delete_ref(&mut self, name: &str) -> GitResult<()> {
         use gix::refs::transaction::{Change, PreviousValue, RefEdit};
 
@@ -573,6 +574,7 @@ impl GitRepository {
     }
 
     /// Get the repository path
+    #[allow(unused)]
     pub fn path(&self) -> &Path {
         self.repo.path()
     }

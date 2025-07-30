@@ -8,8 +8,6 @@ mod list;
 mod show;
 mod status;
 
-#[cfg(test)]
-pub use create::handle_create_with_env;
 pub use create::{CreateArgs, handle_create};
 pub use edit::{EditArgs, handle_edit};
 pub use label::{LabelArgs, handle_label};
@@ -84,7 +82,7 @@ pub(crate) fn get_author_identity(
             .unwrap_or_else(|| "unknown@localhost".to_string())
     });
 
-    Ok(Identity::new(name, email))
+    Ok(Identity::new(&name, &email))
 }
 
 /// Parse status string into IssueStatus enum

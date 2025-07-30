@@ -57,6 +57,12 @@ pub enum IssueEvent {
         author: Identity,
         timestamp: DateTime<Utc>,
     },
+    CreatedByChanged {
+        old_created_by: Identity,
+        new_created_by: Identity,
+        author: Identity,
+        timestamp: DateTime<Utc>,
+    },
 }
 
 impl IssueEvent {
@@ -78,6 +84,8 @@ impl IssueEvent {
         }
     }
 
+    // FIXME(sshine): Resolve issue #3 to remove this #[allow(unused)].
+    #[allow(unused)]
     pub fn comment_added(comment_id: CommentId, content: String, author: Identity) -> Self {
         IssueEvent::CommentAdded {
             comment_id,
@@ -151,17 +159,16 @@ impl IssueEvent {
         }
     }
 
-    pub fn timestamp(&self) -> DateTime<Utc> {
-        match self {
-            IssueEvent::Created { timestamp, .. } => *timestamp,
-            IssueEvent::StatusChanged { timestamp, .. } => *timestamp,
-            IssueEvent::CommentAdded { timestamp, .. } => *timestamp,
-            IssueEvent::LabelAdded { timestamp, .. } => *timestamp,
-            IssueEvent::LabelRemoved { timestamp, .. } => *timestamp,
-            IssueEvent::TitleChanged { timestamp, .. } => *timestamp,
-            IssueEvent::AssigneeChanged { timestamp, .. } => *timestamp,
-            IssueEvent::DescriptionChanged { timestamp, .. } => *timestamp,
-            IssueEvent::PriorityChanged { timestamp, .. } => *timestamp,
+    pub fn created_by_changed(
+        old_created_by: Identity,
+        new_created_by: Identity,
+        author: Identity,
+    ) -> Self {
+        IssueEvent::CreatedByChanged {
+            old_created_by,
+            new_created_by,
+            author,
+            timestamp: Utc::now(),
         }
     }
 
@@ -176,6 +183,7 @@ impl IssueEvent {
             IssueEvent::AssigneeChanged { author, .. } => author,
             IssueEvent::DescriptionChanged { author, .. } => author,
             IssueEvent::PriorityChanged { author, .. } => author,
+            IssueEvent::CreatedByChanged { author, .. } => author,
         }
     }
 }

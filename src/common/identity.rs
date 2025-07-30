@@ -7,11 +7,7 @@ pub struct Identity {
 }
 
 impl Identity {
-    pub fn new(name: String, email: String) -> Self {
-        Self { name, email }
-    }
-
-    pub fn from_git_signature(name: &str, email: &str) -> Self {
+    pub fn new(name: &str, email: &str) -> Self {
         Self {
             name: name.to_string(),
             email: email.to_string(),

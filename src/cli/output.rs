@@ -213,10 +213,6 @@ pub fn warning_message(message: &str) -> String {
     format!("{} {}", style("⚠").yellow().bold(), message)
 }
 
-pub fn info_message(message: &str) -> String {
-    format!("{} {}", style("ℹ").blue().bold(), message)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -224,14 +220,14 @@ mod tests {
     use chrono::Utc;
 
     fn create_test_issue() -> Issue {
-        let author = Identity::new("Test Author".to_string(), "test@example.com".to_string());
+        let author = Identity::new("Test Author", "test@example.com");
         Issue {
             id: 42,
             title: "Test Issue Title".to_string(),
             description: "Single paragraph description".to_string(),
             status: IssueStatus::Todo,
             priority: Priority::None,
-            created_by: author.clone(),
+            created_by: author,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             assignee: None,

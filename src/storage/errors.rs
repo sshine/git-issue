@@ -14,12 +14,6 @@ pub enum StorageError {
     #[error("Invalid event sequence: {message}")]
     InvalidEventSequence { message: String },
 
-    #[error("Concurrent modification detected for issue {issue_id}")]
-    ConcurrentModification { issue_id: u64 },
-
-    #[error("Repository initialization error: {message}")]
-    RepositoryInit { message: String },
-
     #[error("Invalid issue ID format: expected u64, got '{value}'")]
     InvalidIssueId { value: String },
 
@@ -35,12 +29,15 @@ pub enum GitError {
     #[error("Failed to initialize repository: {message}")]
     InitializationFailed { message: String },
 
+    #[allow(unused)]
     #[error("Object not found: {oid}")]
     ObjectNotFound { oid: String },
 
+    #[allow(unused)]
     #[error("Invalid object type: expected {expected}, got {actual}")]
     InvalidObjectType { expected: String, actual: String },
 
+    #[allow(unused)]
     #[error("Reference not found: {ref_name}")]
     ReferenceNotFound { ref_name: String },
 
@@ -65,24 +62,30 @@ pub enum GitError {
     #[error("Invalid git object data: {message}")]
     InvalidObjectData { message: String },
 
+    #[allow(unused)]
     #[error("Tree entry not found: {name}")]
     TreeEntryNotFound { name: String },
 
     #[error("Invalid tree structure: {message}")]
     InvalidTreeStructure { message: String },
 
+    #[allow(unused)]
     #[error("Commit parsing failed: {message}")]
     CommitParsingFailed { message: String },
 
+    #[allow(unused)]
     #[error("Invalid reference name: {ref_name}")]
     InvalidReferenceName { ref_name: String },
 
+    #[allow(unused)]
     #[error("Concurrent reference update: {ref_name}")]
     ConcurrentReferenceUpdate { ref_name: String },
 
+    #[allow(unused)]
     #[error("Repository locked: {message}")]
     RepositoryLocked { message: String },
 
+    #[allow(unused)]
     #[error("Git operation failed: {operation} - {message}")]
     OperationFailed { operation: String, message: String },
 }
@@ -121,35 +124,6 @@ impl From<gix::reference::edit::Error> for GitError {
     }
 }
 
-// Helper functions for creating common errors
-impl GitError {
-    pub fn object_not_found(oid: impl AsRef<str>) -> Self {
-        GitError::ObjectNotFound {
-            oid: oid.as_ref().to_string(),
-        }
-    }
-
-    pub fn reference_not_found(ref_name: impl AsRef<str>) -> Self {
-        GitError::ReferenceNotFound {
-            ref_name: ref_name.as_ref().to_string(),
-        }
-    }
-
-    pub fn invalid_object_type(expected: impl AsRef<str>, actual: impl AsRef<str>) -> Self {
-        GitError::InvalidObjectType {
-            expected: expected.as_ref().to_string(),
-            actual: actual.as_ref().to_string(),
-        }
-    }
-
-    pub fn operation_failed(operation: impl AsRef<str>, message: impl AsRef<str>) -> Self {
-        GitError::OperationFailed {
-            operation: operation.as_ref().to_string(),
-            message: message.as_ref().to_string(),
-        }
-    }
-}
-
 impl StorageError {
     pub fn issue_not_found(issue_id: u64) -> Self {
         StorageError::IssueNotFound { issue_id }
@@ -157,16 +131,6 @@ impl StorageError {
 
     pub fn invalid_event_sequence(message: impl AsRef<str>) -> Self {
         StorageError::InvalidEventSequence {
-            message: message.as_ref().to_string(),
-        }
-    }
-
-    pub fn concurrent_modification(issue_id: u64) -> Self {
-        StorageError::ConcurrentModification { issue_id }
-    }
-
-    pub fn repository_init(message: impl AsRef<str>) -> Self {
-        StorageError::RepositoryInit {
             message: message.as_ref().to_string(),
         }
     }

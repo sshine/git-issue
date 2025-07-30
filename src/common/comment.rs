@@ -12,6 +12,8 @@ pub struct Comment {
 }
 
 impl Comment {
+    // FIXME(sshine): Resolve issue #3 to remove this #[allow(unused)].
+    #[allow(unused)]
     pub fn new(id: CommentId, content: String, author: Identity) -> Self {
         Self {
             id,
