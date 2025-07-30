@@ -1,0 +1,1 @@
+{"Created":{"title":"The edit subcommand has many parameters that the create subcommand doesn't","description":"So -a/-assignee, -s/--status in particular. It should probably have an --add-label that can be called multiple times for multiple labels (Vec<...>)","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T13:54:55.873456Z"}}
