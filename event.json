@@ -1,1 +1,1 @@
-{"TitleChanged":{"old_title":"Add optional search string argument to list command that filters based on word occurrence in title and body","new_title":"Add optional, positional search string argument to list command","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T09:50:16.477977Z"}}
+{"DescriptionChanged":{"old_description":"","new_description":"The argument should filter based on word occurrence in title, body or labels.\n","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T09:50:16.486587Z"}}
