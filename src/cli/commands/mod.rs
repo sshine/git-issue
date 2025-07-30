@@ -1,6 +1,7 @@
 use anyhow::Result;
 use clap::{Parser, Subcommand};
 
+mod assign;
 mod create;
 mod edit;
 mod label;
@@ -8,6 +9,7 @@ mod list;
 mod show;
 mod status;
 
+pub use assign::{AssignArgs, UnassignArgs, handle_assign, handle_unassign};
 pub use create::{CreateArgs, handle_create};
 pub use edit::{EditArgs, handle_edit};
 pub use label::{LabelArgs, handle_label};
@@ -45,6 +47,10 @@ pub enum Commands {
     Edit(EditArgs),
     /// Manage issue labels
     Label(LabelArgs),
+    /// Assign users to an issue
+    Assign(AssignArgs),
+    /// Unassign users from an issue
+    Unassign(UnassignArgs),
 }
 
 pub fn run_command(cli: Cli) -> Result<()> {
@@ -57,6 +63,8 @@ pub fn run_command(cli: Cli) -> Result<()> {
         Commands::Status(args) => handle_status(repo_path, args),
         Commands::Edit(args) => handle_edit(repo_path, args),
         Commands::Label(args) => handle_label(repo_path, args),
+        Commands::Assign(args) => handle_assign(repo_path, args),
+        Commands::Unassign(args) => handle_unassign(repo_path, args),
     }
 }
 

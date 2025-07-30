@@ -140,12 +140,24 @@ fn format_issue_internal(issue: &Issue, truncate_description: bool) -> String {
         issue.updated_at.format("%Y-%m-%d %H:%M:%S")
     ));
 
-    if let Some(ref assignee) = issue.assignee {
-        output.push_str(&format!(
-            "Assigned to: {} ({})\n",
-            style(&assignee.name).green(),
-            assignee.email
-        ));
+    if !issue.assignees.is_empty() {
+        if issue.assignees.len() == 1 {
+            let assignee = &issue.assignees[0];
+            output.push_str(&format!(
+                "Assigned to: {} ({})\n",
+                style(&assignee.name).green(),
+                assignee.email
+            ));
+        } else {
+            output.push_str("Assigned to:\n");
+            for assignee in &issue.assignees {
+                output.push_str(&format!(
+                    "  • {} ({})\n",
+                    style(&assignee.name).green(),
+                    assignee.email
+                ));
+            }
+        }
     }
 
     if !issue.labels.is_empty() {
@@ -230,7 +242,7 @@ mod tests {
             created_by: author,
             created_at: Utc::now(),
             updated_at: Utc::now(),
-            assignee: None,
+            assignees: Vec::new(),
             labels: vec!["test".to_string(), "formatting".to_string()],
             comments: vec![],
         }

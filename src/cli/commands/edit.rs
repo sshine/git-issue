@@ -100,7 +100,7 @@ fn apply_cli_edits(
         status: current_issue.status.to_string(),
         priority: current_issue.priority.to_string(),
         labels: current_issue.labels.clone(),
-        assignee: current_issue.assignee.as_ref().map(|a| a.email.clone()),
+        assignee: current_issue.assignees.first().map(|a| a.email.clone()),
         description: current_issue.description.clone(),
     };
 
@@ -139,10 +139,10 @@ fn apply_cli_edits(
 fn edit_with_editor(
     current_issue: &crate::common::Issue,
     _args: &EditArgs,
-    author_email: &str,
+    _author_email: &str,
 ) -> Result<EditableIssue> {
     // Create default template with current issue or template values
-    let template = create_template(current_issue, author_email);
+    let template = create_template(current_issue);
 
     // Create temporary file with .yaml extension
     let mut temp_file = tempfile::Builder::new().suffix(".yaml").tempfile()?;
@@ -165,7 +165,7 @@ fn edit_with_editor(
     Ok(editable)
 }
 
-fn create_template(issue: &crate::common::Issue, default_assignee_email: &str) -> String {
+fn create_template(issue: &crate::common::Issue) -> String {
     format!(
         r#"# Edit the fields below. Save and close to apply changes.
 # Leave fields unchanged to keep current values.
@@ -193,10 +193,10 @@ description: |
                 .join("\n")
         },
         issue
-            .assignee
-            .as_ref()
+            .assignees
+            .first()
             .map(|a| format!("\"{}\"", a.email))
-            .unwrap_or_else(|| format!("\"{}\"", default_assignee_email)),
+            .unwrap_or_else(|| "null".to_string()),
         issue
             .description
             .lines()
@@ -240,7 +240,7 @@ fn validate_editable_issue(editable: &EditableIssue) -> Result<()> {
 
     // Assignee email format (basic check)
     if let Some(ref email) = editable.assignee {
-        if !email.contains('@') {
+        if !email.is_empty() && !email.contains('@') {
             return Err(anyhow::anyhow!("Invalid email format: {}", email));
         }
     }
@@ -311,13 +311,19 @@ fn apply_changes(
         }
     }
 
-    // Check assignee change
-    let new_assignee = edited.assignee.as_ref().map(|email| {
-        Identity::new("", email) // We don't have name, just email
+    // Check assignee change (backward compatibility: handle single assignee)
+    let new_assignee = edited.assignee.as_ref().and_then(|email| {
+        if email.is_empty() {
+            None
+        } else {
+            Some(Identity::new("", email)) // We don't have name, just email
+        }
     });
-    if original.assignee != new_assignee {
-        store.update_assignee(issue_id, new_assignee, author.clone())?;
-        let assignee_change = match (&original.assignee, &edited.assignee) {
+    let current_assignee = original.assignees.first();
+
+    if current_assignee != new_assignee.as_ref() {
+        store.update_assignee(issue_id, new_assignee.clone(), author.clone())?;
+        let assignee_change = match (current_assignee, &edited.assignee) {
             (None, Some(email)) => format!("Assignee: assigned to {}", email),
             (Some(old), None) => format!("Assignee: unassigned from {}", old.email),
             (Some(old), Some(new)) => format!("Assignee: {} → {}", old.email, new),
@@ -888,8 +894,8 @@ mod tests {
         // Verify the change was applied
         let store = IssueStore::open(&repo_path).expect("Should open store");
         let issue = store.get_issue(issue_id).expect("Should get issue");
-        assert!(issue.assignee.is_some());
-        assert_eq!(issue.assignee.unwrap().email, "assignee@example.com");
+        assert!(!issue.assignees.is_empty());
+        assert_eq!(issue.assignees[0].email, "assignee@example.com");
 
         // Verify the correct event was created
         let events = get_issue_events(&store, issue_id);
@@ -930,8 +936,8 @@ mod tests {
         assert_eq!(issue.description, "New description");
         assert_eq!(issue.status, IssueStatus::Done);
         assert!(issue.labels.contains(&"enhancement".to_string()));
-        assert!(issue.assignee.is_some());
-        assert_eq!(issue.assignee.unwrap().email, "developer@example.com");
+        assert!(!issue.assignees.is_empty());
+        assert_eq!(issue.assignees[0].email, "developer@example.com");
 
         // Verify all the correct events were created
         let events = get_issue_events(&store, issue_id);
@@ -979,7 +985,7 @@ mod tests {
         assert_eq!(issue.description, "Original description");
         assert_eq!(issue.status, IssueStatus::Todo);
         assert!(issue.labels.is_empty());
-        assert!(issue.assignee.is_none());
+        assert!(issue.assignees.is_empty());
 
         // Verify no additional events were created (only the original Created event)
         let events = get_issue_events(&store, issue_id);
@@ -1175,7 +1181,7 @@ mod tests {
         assert!(issue.labels.contains(&"new-feature".to_string()));
         assert!(issue.labels.contains(&"tested".to_string()));
         assert!(!issue.labels.contains(&"old-label".to_string()));
-        assert_eq!(issue.assignee.unwrap().email, "new@example.com");
+        assert_eq!(issue.assignees[0].email, "new@example.com");
 
         // Step 4: Comprehensive event verification using all helper functions
         let events = get_issue_events(&store, issue_id);

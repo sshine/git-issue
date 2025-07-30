@@ -252,20 +252,49 @@ impl IssueStore {
         // Verify the issue exists and get current assignee
         let current_issue = self.get_issue(issue_id)?;
 
-        if current_issue.assignee == new_assignee {
+        let current_assignee = current_issue.assignees.first().cloned();
+        if current_assignee == new_assignee {
             // Assignee unchanged, no-op
             return Ok(());
         }
 
         // Create assignee changed event
         let assignee_event =
-            IssueEvent::assignee_changed(current_issue.assignee, new_assignee, author);
+            IssueEvent::assignee_changed(current_assignee, new_assignee, author);
 
         // Get the current HEAD commit to use as parent
         let parent_commit = self.get_issue_head_commit(issue_id)?;
 
         // Append the event to the issue chain
         self.append_event(issue_id, assignee_event, Some(parent_commit))?;
+
+        Ok(())
+    }
+
+    /// Update an issue's assignees (multiple assignees support)
+    pub fn update_assignees(
+        &mut self,
+        issue_id: IssueId,
+        new_assignees: Vec<Identity>,
+        author: Identity,
+    ) -> StorageResult<()> {
+        // Verify the issue exists and get current assignees
+        let current_issue = self.get_issue(issue_id)?;
+
+        if current_issue.assignees == new_assignees {
+            // Assignees unchanged, no-op
+            return Ok(());
+        }
+
+        // Create assignees changed event
+        let assignees_event =
+            IssueEvent::assignees_changed(current_issue.assignees, new_assignees, author);
+
+        // Get the current HEAD commit to use as parent
+        let parent_commit = self.get_issue_head_commit(issue_id)?;
+
+        // Append the event to the issue chain
+        self.append_event(issue_id, assignees_event, Some(parent_commit))?;
 
         Ok(())
     }
@@ -495,6 +524,15 @@ impl IssueStore {
             IssueEvent::AssigneeChanged { new_assignee, .. } => match new_assignee {
                 Some(identity) => format!("AssigneeChanged: {}", identity.name),
                 None => "AssigneeChanged: unassigned".to_string(),
+            },
+            IssueEvent::AssigneesChanged { new_assignees, .. } => {
+                if new_assignees.is_empty() {
+                    "AssigneesChanged: unassigned all".to_string()
+                } else if new_assignees.len() == 1 {
+                    format!("AssigneesChanged: {}", new_assignees[0].name)
+                } else {
+                    format!("AssigneesChanged: {} assignees", new_assignees.len())
+                }
             },
             IssueEvent::DescriptionChanged { .. } => "DescriptionChanged".to_string(),
             IssueEvent::PriorityChanged {

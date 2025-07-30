@@ -49,7 +49,7 @@ pub struct Issue {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub created_by: Identity,
-    pub assignee: Option<Identity>,
+    pub assignees: Vec<Identity>,
 }
 
 impl Issue {
@@ -68,7 +68,7 @@ impl Issue {
             created_at,
             updated_at: created_at,
             created_by,
-            assignee: None,
+            assignees: Vec::new(),
         }
     }
 
@@ -120,9 +120,9 @@ impl Issue {
 
     // FIXME(sshine): This should be deleted unless it's useful for Web UI (issue #15)
     #[allow(unused)]
-    pub fn assign_to(&mut self, assignee: Option<Identity>) {
-        if self.assignee != assignee {
-            self.assignee = assignee;
+    pub fn set_assignees(&mut self, assignees: Vec<Identity>) {
+        if self.assignees != assignees {
+            self.assignees = assignees;
             self.updated_at = Utc::now();
         }
     }
@@ -178,7 +178,7 @@ impl Issue {
             created_at: created_event.3,
             updated_at: created_event.3,
             created_by: created_event.2,
-            assignee: None,
+            assignees: Vec::new(),
         };
 
         for event in events.iter().skip(1) {
@@ -241,7 +241,19 @@ impl Issue {
                 timestamp,
                 ..
             } => {
-                self.assignee = new_assignee.clone();
+                // Backward compatibility: convert single assignee to Vec
+                self.assignees = match new_assignee {
+                    Some(assignee) => vec![assignee.clone()],
+                    None => Vec::new(),
+                };
+                self.updated_at = *timestamp;
+            }
+            IssueEvent::AssigneesChanged {
+                new_assignees,
+                timestamp,
+                ..
+            } => {
+                self.assignees = new_assignees.clone();
                 self.updated_at = *timestamp;
             }
             IssueEvent::DescriptionChanged {
@@ -319,7 +331,7 @@ mod tests {
         assert_eq!(issue.description, "Test Description");
         assert_eq!(issue.status, IssueStatus::Todo);
         assert_eq!(issue.created_by, author);
-        assert!(issue.assignee.is_none());
+        assert!(issue.assignees.is_empty());
         assert!(issue.labels.is_empty());
         assert!(issue.comments.is_empty());
     }
@@ -362,10 +374,10 @@ mod tests {
         issue.change_title("New Title".to_string());
         assert_eq!(issue.title, "New Title");
 
-        // Test assignee
+        // Test assignees
         let assignee = Identity::new("Assignee", "assignee@example.com");
-        issue.assign_to(Some(assignee.clone()));
-        assert_eq!(issue.assignee, Some(assignee));
+        issue.set_assignees(vec![assignee.clone()]);
+        assert_eq!(issue.assignees, vec![assignee]);
     }
 
     #[test]

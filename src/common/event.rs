@@ -45,6 +45,12 @@ pub enum IssueEvent {
         author: Identity,
         timestamp: DateTime<Utc>,
     },
+    AssigneesChanged {
+        old_assignees: Vec<Identity>,
+        new_assignees: Vec<Identity>,
+        author: Identity,
+        timestamp: DateTime<Utc>,
+    },
     DescriptionChanged {
         old_description: String,
         new_description: String,
@@ -133,6 +139,19 @@ impl IssueEvent {
         }
     }
 
+    pub fn assignees_changed(
+        old_assignees: Vec<Identity>,
+        new_assignees: Vec<Identity>,
+        author: Identity,
+    ) -> Self {
+        IssueEvent::AssigneesChanged {
+            old_assignees,
+            new_assignees,
+            author,
+            timestamp: Utc::now(),
+        }
+    }
+
     pub fn description_changed(
         old_description: String,
         new_description: String,
@@ -181,6 +200,7 @@ impl IssueEvent {
             IssueEvent::LabelRemoved { author, .. } => author,
             IssueEvent::TitleChanged { author, .. } => author,
             IssueEvent::AssigneeChanged { author, .. } => author,
+            IssueEvent::AssigneesChanged { author, .. } => author,
             IssueEvent::DescriptionChanged { author, .. } => author,
             IssueEvent::PriorityChanged { author, .. } => author,
             IssueEvent::CreatedByChanged { author, .. } => author,
