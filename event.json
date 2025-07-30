@@ -1,1 +1,1 @@
-{"StatusChanged":{"from":"Todo","to":"InProgress","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T14:04:49.132547Z"}}
+{"DescriptionChanged":{"old_description":"The -n/--author-name and -e/--author-email parameters seem broken / like they don't do anything.","new_description":"The -n/--author-name and -e/--author-email parameters seem broken / like they don't do anything.\n","author":{"name":"Simon Shine","email":"simon@simonshine.dk"},"timestamp":"2025-07-30T14:13:19.580510Z"}}
