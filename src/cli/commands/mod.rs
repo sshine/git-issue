@@ -8,6 +8,7 @@ mod label;
 mod list;
 mod show;
 mod status;
+mod sync;
 
 pub use assign::{AssignArgs, UnassignArgs, handle_assign, handle_unassign};
 pub use create::{CreateArgs, handle_create};
@@ -16,6 +17,7 @@ pub use label::{LabelArgs, handle_label};
 pub use list::{ListArgs, handle_list};
 pub use show::{ShowArgs, handle_show};
 pub use status::{StatusArgs, handle_status};
+pub use sync::{RefComparisonResult, SyncArgs, SyncRef, SyncSummary, handle_sync};
 
 use crate::common::{EnvProvider, Identity, IssueStatus};
 use crate::storage::IssueStore;
@@ -51,6 +53,8 @@ pub enum Commands {
     Assign(AssignArgs),
     /// Unassign users from an issue
     Unassign(UnassignArgs),
+    /// Sync issues with remote repository
+    Sync(SyncArgs),
 }
 
 pub fn run_command(cli: Cli) -> Result<()> {
@@ -65,6 +69,7 @@ pub fn run_command(cli: Cli) -> Result<()> {
         Commands::Label(args) => handle_label(repo_path, args),
         Commands::Assign(args) => handle_assign(repo_path, args),
         Commands::Unassign(args) => handle_unassign(repo_path, args),
+        Commands::Sync(args) => handle_sync(repo_path, args),
     }
 }
 

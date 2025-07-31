@@ -259,8 +259,7 @@ impl IssueStore {
         }
 
         // Create assignee changed event
-        let assignee_event =
-            IssueEvent::assignee_changed(current_assignee, new_assignee, author);
+        let assignee_event = IssueEvent::assignee_changed(current_assignee, new_assignee, author);
 
         // Get the current HEAD commit to use as parent
         let parent_commit = self.get_issue_head_commit(issue_id)?;
@@ -533,7 +532,7 @@ impl IssueStore {
                 } else {
                     format!("AssigneesChanged: {} assignees", new_assignees.len())
                 }
-            },
+            }
             IssueEvent::DescriptionChanged { .. } => "DescriptionChanged".to_string(),
             IssueEvent::PriorityChanged {
                 old_priority,
@@ -568,6 +567,174 @@ impl IssueStore {
         }
 
         Ok(())
+    }
+
+    /// Get default push remote using git's standard resolution
+    pub fn get_default_push_remote(&self) -> StorageResult<String> {
+        self.repo
+            .get_default_push_remote()
+            .map_err(StorageError::from)
+    }
+
+    /// Check if a remote exists
+    pub fn remote_exists(&self, remote_name: &str) -> StorageResult<bool> {
+        self.repo
+            .remote_exists(remote_name)
+            .map_err(StorageError::from)
+    }
+
+    /// List all issue refs that should be synced
+    pub fn list_issue_refs(&self) -> StorageResult<Vec<String>> {
+        let refs = self.repo.list_refs("refs/git-issue/issues/")?;
+        Ok(refs.into_iter().map(|(ref_name, _oid)| ref_name).collect())
+    }
+
+    /// List all metadata refs that should be synced
+    pub fn list_meta_refs(&self) -> StorageResult<Vec<String>> {
+        let refs = self.repo.list_refs("refs/git-issue/meta/")?;
+        Ok(refs.into_iter().map(|(ref_name, _oid)| ref_name).collect())
+    }
+
+    /// Check if a ref exists
+    pub fn ref_exists(&self, ref_name: &str) -> StorageResult<bool> {
+        Ok(self.repo.read_ref(ref_name)?.is_some())
+    }
+
+    /// Fetch refs from a remote for comparison
+    pub fn fetch_refs_from_remote(
+        &self,
+        remote_name: &str,
+        refs: &[String],
+    ) -> StorageResult<std::collections::HashMap<String, String>> {
+        self.repo
+            .fetch_refs_from_remote(remote_name, refs)
+            .map_err(StorageError::from)
+    }
+
+    /// Push a ref to a remote
+    pub fn push_ref_to_remote(
+        &self,
+        remote_name: &str,
+        ref_name: &str,
+        force: bool,
+    ) -> StorageResult<()> {
+        self.repo
+            .push_ref_to_remote(remote_name, ref_name, force)
+            .map_err(StorageError::from)
+    }
+
+    /// Sync all issues to remote repository
+    pub fn sync_to_remote(
+        &mut self,
+        remote_name: &str,
+        specific_issues: Option<&[IssueId]>,
+        force: bool,
+    ) -> StorageResult<crate::cli::commands::SyncSummary> {
+        use crate::cli::commands::{RefComparisonResult, SyncRef, SyncSummary};
+
+        let mut summary = SyncSummary::default();
+
+        // Discover refs to sync
+        let refs_to_sync = if let Some(issue_ids) = specific_issues {
+            // Sync only specific issues
+            let mut refs = Vec::new();
+            for &issue_id in issue_ids {
+                let ref_name = format!("refs/git-issue/issues/{}", issue_id);
+                if self.ref_exists(&ref_name)? {
+                    refs.push(ref_name);
+                } else {
+                    return Err(StorageError::IssueNotFound { issue_id });
+                }
+            }
+            refs
+        } else {
+            // Sync all issue refs
+            let mut refs = self.list_issue_refs()?;
+            refs.extend(self.list_meta_refs()?);
+            refs
+        };
+
+        if refs_to_sync.is_empty() {
+            return Ok(summary);
+        }
+
+        // Fetch remote refs for comparison
+        let remote_refs = self.fetch_refs_from_remote(remote_name, &refs_to_sync)?;
+
+        // Compare and sync each ref
+        for ref_name in refs_to_sync {
+            let local_oid = self.repo.read_ref(&ref_name)?.map(|oid| oid.to_string());
+            let remote_oid = remote_refs.get(&ref_name).cloned();
+
+            let comparison = match (&local_oid, &remote_oid) {
+                (Some(_), None) => RefComparisonResult::NewRef,
+                (Some(local), Some(remote)) if local == remote => RefComparisonResult::UpToDate,
+                (Some(local), Some(remote)) => {
+                    // Use git to determine relationship
+                    let (local_commits, remote_commits) = self.repo.compare_refs(local, remote)?;
+                    if remote_commits == 0 {
+                        RefComparisonResult::FastForward { local_commits }
+                    } else if local_commits == 0 {
+                        RefComparisonResult::Behind { remote_commits }
+                    } else {
+                        RefComparisonResult::Diverged {
+                            local_commits,
+                            remote_commits,
+                        }
+                    }
+                }
+                (None, Some(_)) => RefComparisonResult::LocallyDeleted,
+                (None, None) => continue, // Skip non-existent refs
+            };
+
+            // Extract issue ID from ref name if it's an issue ref
+            let issue_id = if ref_name.starts_with("refs/git-issue/issues/") {
+                ref_name
+                    .strip_prefix("refs/git-issue/issues/")
+                    .and_then(|s| s.parse().ok())
+            } else {
+                None
+            };
+
+            let _sync_ref = SyncRef {
+                ref_name: ref_name.clone(),
+                local_oid,
+                remote_oid,
+                comparison: comparison.clone(),
+                issue_id,
+            };
+
+            // Decide whether to sync this ref
+            match comparison {
+                RefComparisonResult::UpToDate => {
+                    summary.skipped_refs.push(ref_name);
+                }
+                RefComparisonResult::FastForward { .. } | RefComparisonResult::NewRef => {
+                    // Safe to push
+                    match self.push_ref_to_remote(remote_name, &ref_name, false) {
+                        Ok(_) => summary.pushed_refs.push(ref_name),
+                        Err(e) => summary.failed_refs.push((ref_name, e.to_string())),
+                    }
+                }
+                RefComparisonResult::Diverged { .. } | RefComparisonResult::Behind { .. } => {
+                    if force {
+                        // Force push (with lease by default)
+                        match self.push_ref_to_remote(remote_name, &ref_name, true) {
+                            Ok(_) => summary.pushed_refs.push(ref_name),
+                            Err(e) => summary.failed_refs.push((ref_name, e.to_string())),
+                        }
+                    } else {
+                        summary.conflicts.push(ref_name);
+                    }
+                }
+                RefComparisonResult::LocallyDeleted => {
+                    // Could implement ref deletion, but skip for now
+                    summary.skipped_refs.push(ref_name);
+                }
+            }
+        }
+
+        Ok(summary)
     }
 }
 

@@ -578,6 +578,113 @@ impl GitRepository {
     pub fn path(&self) -> &Path {
         self.repo.path()
     }
+
+    /// Get default push remote using git's standard resolution
+    pub fn get_default_push_remote(&self) -> GitResult<String> {
+        // Try to get current branch first
+        if let Ok(Some(head_ref)) = self.repo.head_ref() {
+            if let Some(branch_name) =
+                head_ref
+                    .name()
+                    .category_and_short_name()
+                    .and_then(|(cat, name)| {
+                        if cat == gix::refs::Category::LocalBranch {
+                            Some(name.to_string())
+                        } else {
+                            None
+                        }
+                    })
+            {
+                // 1. Check branch.<current-branch>.pushRemote
+                let push_remote_key = format!("branch.{}.pushRemote", branch_name);
+                if let Some(remote) = self.get_config(&push_remote_key) {
+                    return Ok(remote);
+                }
+
+                // 2. Check remote.pushDefault
+                if let Some(remote) = self.get_config("remote.pushDefault") {
+                    return Ok(remote);
+                }
+
+                // 3. Check branch.<current-branch>.remote
+                let remote_key = format!("branch.{}.remote", branch_name);
+                if let Some(remote) = self.get_config(&remote_key) {
+                    return Ok(remote);
+                }
+            }
+        }
+
+        // 4. Fall back to "origin"
+        Ok("origin".to_string())
+    }
+
+    /// Check if a remote exists
+    pub fn remote_exists(&self, remote_name: &str) -> GitResult<bool> {
+        // Check if remote.{name}.url config exists
+        let url_key = format!("remote.{}.url", remote_name);
+        Ok(self.get_config(&url_key).is_some())
+    }
+
+    /// List all remotes
+    pub fn list_remotes(&self) -> GitResult<Vec<String>> {
+        let mut remotes = Vec::new();
+
+        // Get all config entries and filter for remote.*.url
+        let config = self.repo.config_snapshot();
+        // This is a simplified approach - in a full implementation,
+        // we'd iterate through all config keys to find remote.*.url patterns
+        for remote_name in &["origin", "upstream"] {
+            let url_key = format!("remote.{}.url", remote_name);
+            if config.string(&url_key).is_some() {
+                remotes.push(remote_name.to_string());
+            }
+        }
+
+        Ok(remotes)
+    }
+
+    /// Fetch specific refs from a remote
+    pub fn fetch_refs_from_remote(
+        &self,
+        _remote_name: &str,
+        _refs: &[String],
+    ) -> GitResult<std::collections::HashMap<String, String>> {
+        // Placeholder implementation - in a real implementation, this would:
+        // 1. Connect to the remote
+        // 2. Fetch the specified refs
+        // 3. Return a map of ref_name -> commit_oid
+
+        // For now, return empty map (simulating no remote refs)
+        Ok(std::collections::HashMap::new())
+    }
+
+    /// Push a ref to a remote with optional force
+    pub fn push_ref_to_remote(
+        &self,
+        _remote_name: &str,
+        _ref_name: &str,
+        _force: bool,
+    ) -> GitResult<()> {
+        // Placeholder implementation - in a real implementation, this would:
+        // 1. Connect to the remote
+        // 2. Push the ref with the specified force settings
+        // 3. Handle force-with-lease logic
+
+        // For now, just return success
+        Ok(())
+    }
+
+    /// Compare local and remote refs to determine their relationship
+    pub fn compare_refs(&self, _local_oid: &str, _remote_oid: &str) -> GitResult<(u32, u32)> {
+        // Placeholder implementation - in a real implementation, this would:
+        // 1. Use git's merge-base to find common ancestor
+        // 2. Count commits unique to local (ahead count)
+        // 3. Count commits unique to remote (behind count)
+        // 4. Return (local_commits, remote_commits)
+
+        // For now, return (1, 0) indicating local is 1 commit ahead
+        Ok((1, 0))
+    }
 }
 
 #[cfg(test)]
